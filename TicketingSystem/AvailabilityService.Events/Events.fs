@@ -15,7 +15,7 @@ type TicketsBookedEvent = {
     EventId : string
     OrderId : string
     PaymentReference : string
-    BookedAt : System.DateTime
+    RequestedAt : System.DateTime
     UserId : string
     Tickets : TicketPrice[]
     TotalPrice : decimal
@@ -24,7 +24,7 @@ type TicketsBookedEvent = {
 type TicketsCancelledEvent = {
     EventId : string
     OrderId : string
-    CancelledAt : System.DateTime
+    RequestedAt : System.DateTime
     TicketIds : string[]
     UserId : string
 }

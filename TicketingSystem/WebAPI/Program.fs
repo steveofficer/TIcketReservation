@@ -22,10 +22,15 @@ let main argv =
         let query = PricingService.Queries.``get event ticket prices`` mongoDb
         PricingService.Handlers.``get event ticket prices`` query
 
-    // Create the handler that manages the request to get the list of ticket prices for an event
+    // Create the handler that manages the request to get the list of ticket availability for an event
     let getEventAvailability = 
         let query = AvailabilityService.Queries.``get event ticket availability`` mongoDb
         AvailabilityService.Handlers.``get event ticket availability`` query
+    
+    // Create the handler that manages the request to create an order for a ticket request
+    let orderTickets = 
+        let send x = async.Return()
+        AvailabilityService.Handlers.``book tickets`` send
 
     // Start the Suave Server so it start listening for requests
     startWebServer 
@@ -40,6 +45,7 @@ let main argv =
             POST >=> 
                 choose [
                     pathScan "/event/%s/quote" quoteTickets
+                    pathScan "event/%s/order" orderTickets
                 ]
                 
             NOT_FOUND "The requested path is not valid."

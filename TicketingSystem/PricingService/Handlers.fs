@@ -22,7 +22,7 @@ let ``get ticket prices`` query (publish : PriceResponse -> Async<unit>) (eventI
     let request = 
         ctx.request.rawForm 
         |> System.Text.UTF8Encoding.UTF8.GetString 
-        |> (fun s -> Newtonsoft.Json.JsonConvert.DeserializeObject<PricingService.Types.Requests.PriceTicketsRequest>(s))
+        |> (fun s -> JsonConvert.DeserializeObject<PriceTicketsRequest>(s))
     let computePrices (prices : Map<string,decimal>) (pricesValidAt : System.DateTime) = 
         let result = 
             request.Tickets 

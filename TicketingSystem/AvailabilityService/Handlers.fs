@@ -17,3 +17,12 @@ let ``get event ticket availability`` (query : string -> Async<EventAvailability
         | Some event -> event |> JsonConvert.SerializeObject |> OK <| ctx
         | None -> NOT_FOUND "Event not found" ctx
 }
+
+let ``book tickets`` send (``event id`` : string) (ctx : HttpContext) = async {
+    let request = 
+        ctx.request.rawForm 
+        |> System.Text.UTF8Encoding.UTF8.GetString 
+        |> (fun s -> JsonConvert.DeserializeObject<BookTicketRequest>(s))
+    do! send request
+    return! OK "Request sent" ctx
+}
