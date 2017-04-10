@@ -33,6 +33,6 @@ module Db =
     }
 
     type EventPricing = {
-        EventId : string
+        Id : string
         Tickets : TicketPriceInfo[]
     }
