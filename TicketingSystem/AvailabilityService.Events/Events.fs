@@ -1,4 +1,4 @@
-﻿namespace AvailabilityService.Events
+﻿namespace AvailabilityService.Contract.Events
 
 type TicketQuantity = {
     TicketTypeId : string

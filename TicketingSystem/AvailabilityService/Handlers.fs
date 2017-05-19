@@ -9,20 +9,21 @@ open Types.Responses
 open Types.Db
 open MongoDB.Bson
 open Newtonsoft.Json
+open AvailabilityService.Contract.Commands
 
 let ``get event ticket availability`` (query : string -> Async<EventAvailability option * System.DateTime>) (``event id`` : string) (ctx : HttpContext) = async {
-    let! (event, asAt) = query ``event id``
+    let! (event, at) = query ``event id``
     return!
         match event with
         | Some event -> event |> JsonConvert.SerializeObject |> OK <| ctx
-        | None -> NOT_FOUND "Event not found" ctx
+        | None -> "Not found" |> NOT_FOUND <| ctx
 }
 
-let ``book tickets`` send (``event id`` : string) (ctx : HttpContext) = async {
+let ``confirm order`` (send : BookTicketsCommand -> Async<unit>) (``event id`` : string) (ctx : HttpContext) = async {
     let request = 
         ctx.request.rawForm 
         |> System.Text.UTF8Encoding.UTF8.GetString 
-        |> (fun s -> JsonConvert.DeserializeObject<BookTicketRequest>(s))
-    do! send request
-    return! OK "Request sent" ctx
+        |> (fun s -> JsonConvert.DeserializeObject<ConfirmOrderRequest>(s))
+    do! send { UserId = request.UserId; OrderId = request.OrderId; PaymentReference = request.PaymentReference }
+    return! ACCEPTED request.OrderId ctx
 }

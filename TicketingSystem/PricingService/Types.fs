@@ -23,7 +23,6 @@ module Responses =
         OrderId : string
         TicketPrices : TicketPrice[]
         TotalPrice : decimal
-        AsAt : System.DateTime
     }
 
 module Db =

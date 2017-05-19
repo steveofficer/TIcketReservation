@@ -96,6 +96,13 @@
       <Private>True</Private>
     </Reference>
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\PricingServiceEvents\PricingService.Contract.fsproj">
+      <Name>PricingService.Contract</Name>
+      <Project>{b108fd94-54cf-47d6-a54e-7cba204a0f7f}</Project>
+      <Private>True</Private>
+    </ProjectReference>
+  </ItemGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">

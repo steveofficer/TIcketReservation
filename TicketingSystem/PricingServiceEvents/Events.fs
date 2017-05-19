@@ -1,4 +1,4 @@
-﻿namespace PricingService.Events
+﻿namespace PricingService.Contract.Events
 
 type QuotedTicket = {
     TicketTypeId : string

@@ -6,18 +6,16 @@ type TicketQuantity = {
 }
 
 module Requests =
-    type BookTicketRequest = {
+    type ConfirmOrderRequest = {
         UserId : string
         PaymentReference : string
         OrderId : string
-        Tickets : TicketQuantity[]
     }
 
 module Responses = 
     type AvailabilityResponse = {
         OrderId : string
         TicketAvailability : TicketQuantity[]
-        AsAt : System.DateTime
     }
 
 module Db =

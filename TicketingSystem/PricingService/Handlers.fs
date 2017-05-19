@@ -9,6 +9,7 @@ open Types.Responses
 open Types.Db
 open MongoDB.Bson
 open Newtonsoft.Json
+open PricingService.Contract.Events
 
 let ``get event ticket prices`` (query : string -> Async<EventPricing option * System.DateTime>) (``event id`` : string) (ctx : HttpContext) = async {
     let! (event, asAt) = query ``event id``
@@ -18,12 +19,13 @@ let ``get event ticket prices`` (query : string -> Async<EventPricing option * S
         | None -> NOT_FOUND "Event not found" ctx
 }
 
-let ``get ticket prices`` query (publish : PriceResponse -> Async<unit>) (eventId : string) (ctx : HttpContext) = async {
+let ``create quote`` query (publish : TicketsQuotedEvent -> Async<unit>) (eventId : string) (ctx : HttpContext) = async {
     let request = 
         ctx.request.rawForm 
         |> System.Text.UTF8Encoding.UTF8.GetString 
         |> (fun s -> JsonConvert.DeserializeObject<PriceTicketsRequest>(s))
-    let computePrices (prices : Map<string,decimal>) (pricesValidAt : System.DateTime) = 
+    
+    let computePrices (prices : Map<string,decimal>) = 
         let result = 
             request.Tickets 
             |> Array.map (fun t -> 
@@ -39,7 +41,6 @@ let ``get ticket prices`` query (publish : PriceResponse -> Async<unit>) (eventI
                     OrderId = ObjectId.GenerateNewId().ToString()
                     TicketPrices = pricedTickets
                     TotalPrice = pricedTickets |> Array.sumBy (fun t -> t.TotalPrice)
-                    AsAt = pricesValidAt
                 }
             )
 
@@ -50,13 +51,24 @@ let ``get ticket prices`` query (publish : PriceResponse -> Async<unit>) (eventI
          
     // Get the prices of the tickets, and also remember what time the prices were valid at
     let! (maybePrices : Map<string, decimal> option, asAt) = eventId |> query <| ticketIds
-    match maybePrices with
-    | None -> return! NOT_FOUND "Non-existing event was requested" ctx
-    | Some prices ->
-        let maybePricedTickets = if ticketIds |> Set.forall prices.ContainsKey then computePrices prices asAt |> Some else None
-        match maybePricedTickets with
-        | None -> return! NOT_FOUND "Non-existing Ticket Id(s) were requested" ctx
-        | Some pricedTickets -> 
-            do! publish pricedTickets
-            return! pricedTickets |> JsonConvert.SerializeObject |> OK <| ctx  
+    
+    let maybePricedTickets = 
+        maybePrices 
+        |> Option.bind (fun prices -> if ticketIds |> Set.forall prices.ContainsKey then computePrices prices |> Some else None)
+
+    let asEvent (priced_tickets : PriceResponse) = 
+        { 
+            EventId = eventId; 
+            OrderId = priced_tickets.OrderId; 
+            PricesValidAt = asAt; 
+            TotalPrice = priced_tickets.TotalPrice; 
+            UserId = "user"; 
+            Tickets = priced_tickets.TicketPrices |> Array.map (fun ticket -> { TicketTypeId = ticket.TicketTypeId; Quantity = ticket.Quantity; PriceEach = ticket.PricePer; TotalPrice = ticket.TotalPrice }) 
+        }
+
+    match maybePricedTickets with
+    | None -> return! NOT_FOUND "Either the event or ticket types did not exist" ctx
+    | Some priced_tickets ->
+        do! publish (priced_tickets |> asEvent)
+        return! priced_tickets |> JsonConvert.SerializeObject|> ACCEPTED <| ctx  
 } 

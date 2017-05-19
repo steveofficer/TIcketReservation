@@ -1,21 +1,26 @@
-﻿// Learn more about F# at http://fsharp.org
-// See the 'F# Tutorial' project for more help.
-open Suave
+﻿open Suave
 open Suave.Filters
 open Suave.Operators
 open Suave.RequestErrors
+open System.Net
 
 [<EntryPoint>]
 let main argv = 
-    // Create the connection to mongo
-    let mongoClient = MongoDB.Driver.MongoClient("")
-    let mongoDb = mongoClient.GetDatabase("EventPricing")
+    // Create the connection to MongoDB
+    let settings = System.Configuration.ConfigurationManager.ConnectionStrings
+    let mongoClient = MongoDB.Driver.MongoClient(settings.["mongo"].ConnectionString)
+    let mongoDb = mongoClient.GetDatabase(System.Configuration.ConfigurationManager.AppSettings.["database"])
     
+    // Create the connection to RabbitMQ
+    let rabbitFactory = RabbitMQ.Client.ConnectionFactory(uri = System.Uri(settings.["rabbit"].ConnectionString))
+    let connection = rabbitFactory.CreateConnection()
+    let publisher = RabbitMQ.Publisher.PublishChannel("TicketServiceAPI", connection)
+    publisher.registerEvents([| "AvailabilityService.Contract"; "PricingService.Contract" |])
+
     // Create the handler that manages the request to create a quote for a ticket request
     let quoteTickets = 
         let query = PricingService.Queries.``get ticket prices`` mongoDb
-        let publish x = async.Return()
-        PricingService.Handlers.``get ticket prices`` query publish
+        PricingService.Handlers.``create quote`` query publisher.publish
     
     // Create the handler that manages the request to get the list of ticket prices for an event
     let getEventPrices = 
@@ -27,14 +32,18 @@ let main argv =
         let query = AvailabilityService.Queries.``get event ticket availability`` mongoDb
         AvailabilityService.Handlers.``get event ticket availability`` query
     
-    // Create the handler that manages the request to create an order for a ticket request
-    let orderTickets = 
-        let send x = async.Return()
-        AvailabilityService.Handlers.``book tickets`` send
+    // Create the handler that manages the request to confirm an order
+    let orderTickets = AvailabilityService.Handlers.``confirm order`` publisher.publish
 
     // Start the Suave Server so it start listening for requests
+    let port = Sockets.Port.Parse <| argv.[0]
+ 
+    let serverConfig = 
+        { defaultConfig with
+           bindings = [ HttpBinding.create HTTP IPAddress.Loopback port ]
+        }
     startWebServer 
-        defaultConfig 
+        serverConfig
         (choose [
             GET >=>
                 choose [
@@ -45,9 +54,9 @@ let main argv =
             POST >=> 
                 choose [
                     pathScan "/event/%s/quote" quoteTickets
-                    pathScan "event/%s/order" orderTickets
+                    pathScan "/event/%s/order" orderTickets
                 ]
                 
             NOT_FOUND "The requested path is not valid."
-        ])
+        ] >=> Writers.setMimeType "application/json") 
     0
