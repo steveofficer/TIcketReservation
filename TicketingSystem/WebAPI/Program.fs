@@ -18,22 +18,22 @@ let main argv =
     publisher.registerEvents([| "AvailabilityService.Contract"; "PricingService.Contract" |])
 
     // Create the handler that manages the request to create a quote for a ticket request
-    let quoteTickets = 
+    let quoteTicketsHandler = 
         let query = PricingService.Queries.``get ticket prices`` mongoDb
         PricingService.Handlers.``create quote`` query publisher.publish
     
     // Create the handler that manages the request to get the list of ticket prices for an event
-    let getEventPrices = 
+    let getEventPricesHandler = 
         let query = PricingService.Queries.``get event ticket prices`` mongoDb
         PricingService.Handlers.``get event ticket prices`` query
 
     // Create the handler that manages the request to get the list of ticket availability for an event
-    let getEventAvailability = 
+    let getEventAvailabilityHandler = 
         let query = AvailabilityService.Queries.``get event ticket availability`` mongoDb
         AvailabilityService.Handlers.``get event ticket availability`` query
     
     // Create the handler that manages the request to confirm an order
-    let orderTickets = AvailabilityService.Handlers.``confirm order`` publisher.publish
+    let orderTicketsHandler = AvailabilityService.Handlers.``confirm order`` publisher.publish
 
     // Start the Suave Server so it start listening for requests
     let port = Sockets.Port.Parse <| argv.[0]
@@ -47,14 +47,14 @@ let main argv =
         (choose [
             GET >=>
                 choose [
-                    pathScan "/event/%s/pricing" getEventPrices
-                    pathScan "/event/%s/availability" getEventAvailability
+                    pathScan "/event/%s/pricing" getEventPricesHandler
+                    pathScan "/event/%s/availability" getEventAvailabilityHandler
                 ]
             
             POST >=> 
                 choose [
-                    pathScan "/event/%s/quote" quoteTickets
-                    pathScan "/event/%s/order" orderTickets
+                    pathScan "/event/%s/quote" quoteTicketsHandler
+                    pathScan "/event/%s/order" orderTicketsHandler
                 ]
                 
             NOT_FOUND "The requested path is not valid."

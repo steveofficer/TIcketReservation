@@ -1,24 +1,17 @@
 ﻿namespace AvailabilityService.Contract.Events
 
-type TicketQuantity = {
-    TicketTypeId : string
-    Quantity : uint32
-}
-
-type TicketPrice = {
-    TicketTypeId : string
-    TicketId : string
-    Price : decimal
-}
-
-type TicketsBookedEvent = {
+type TicketsAllocatedEvent = {
     EventId : string
     OrderId : string
     PaymentReference : string
     RequestedAt : System.DateTime
     UserId : string
-    Tickets : TicketPrice[]
+    Tickets : AllocatedTicket[]
     TotalPrice : decimal
+} and AllocatedTicket = {
+    TicketTypeId : string
+    TicketId : string
+    Price : decimal
 }
 
 type TicketsCancelledEvent = {
@@ -29,10 +22,15 @@ type TicketsCancelledEvent = {
     UserId : string
 }
 
-type TicketsUnavailableEvent = {
+type TicketsAllocationFailedEvent = {
     EventId : string
     OrderId : string
     RequestedAt : System.DateTime
     Tickets : TicketQuantity[]
     UserId : string
+    Reason : string
+} and TicketQuantity = {
+    TicketTypeId : string
+    Quantity : uint32
 }
+

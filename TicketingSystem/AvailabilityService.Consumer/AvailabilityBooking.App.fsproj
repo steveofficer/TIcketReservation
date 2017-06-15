@@ -5,14 +5,14 @@
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <SchemaVersion>2.0</SchemaVersion>
-    <ProjectGuid>cd3a999f-9053-4eef-bde7-689349cac6a5</ProjectGuid>
-    <OutputType>Library</OutputType>
-    <RootNamespace>AvailabilityService</RootNamespace>
-    <AssemblyName>AvailabilityService</AssemblyName>
+    <ProjectGuid>9ace9e94-9e36-472a-baf5-0b5cd37b7d22</ProjectGuid>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>AvailabilityService.Consumer</RootNamespace>
+    <AssemblyName>AvailabilityService.Consumer</AssemblyName>
     <TargetFrameworkVersion>v4.6.1</TargetFrameworkVersion>
     <TargetFSharpCoreVersion>4.4.0.0</TargetFSharpCoreVersion>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
-    <Name>AvailabilityService</Name>
+    <Name>AvailabilityBooking.App</Name>
     <TargetFrameworkProfile />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
@@ -23,7 +23,7 @@
     <OutputPath>bin\Debug\</OutputPath>
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <WarningLevel>3</WarningLevel>
-    <DocumentationFile>bin\Debug\AvailabilityService.XML</DocumentationFile>
+    <DocumentationFile>bin\Debug\AvailabilityService.Consumer.XML</DocumentationFile>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
@@ -32,7 +32,7 @@
     <OutputPath>bin\Release\</OutputPath>
     <DefineConstants>TRACE</DefineConstants>
     <WarningLevel>3</WarningLevel>
-    <DocumentationFile>bin\Release\AvailabilityService.XML</DocumentationFile>
+    <DocumentationFile>bin\Release\AvailabilityService.Consumer.XML</DocumentationFile>
   </PropertyGroup>
   <PropertyGroup>
     <MinimumVisualStudioVersion Condition="'$(MinimumVisualStudioVersion)' == ''">11</MinimumVisualStudioVersion>
@@ -52,16 +52,14 @@
   <Import Project="$(FSharpTargetsPath)" />
   <ItemGroup>
     <Compile Include="AssemblyInfo.fs" />
-    <Compile Include="Types.fs" />
-    <Compile Include="Queries.fs" />
-    <Compile Include="Handlers.fs" />
+    <Compile Include="BookTicketCommandHandler.fs" />
+    <Compile Include="Program.fs" />
+    <Content Include="App.config">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
     <Content Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <Reference Include="FSharp.Core">
-      <HintPath>..\packages\FSharp.Core.4.0.0.1\lib\net40\FSharp.Core.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
     <Reference Include="MongoDB.Bson">
       <HintPath>..\packages\MongoDB.Bson.2.4.4\lib\net45\MongoDB.Bson.dll</HintPath>
       <Private>True</Private>
@@ -75,15 +73,15 @@
       <Private>True</Private>
     </Reference>
     <Reference Include="mscorlib" />
-    <Reference Include="Newtonsoft.Json">
-      <HintPath>..\packages\Newtonsoft.Json.10.0.2\lib\net45\Newtonsoft.Json.dll</HintPath>
+    <Reference Include="FSharp.Core, Version=$(TargetFSharpCoreVersion), Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
       <Private>True</Private>
     </Reference>
-    <Reference Include="Suave">
-      <HintPath>..\packages\Suave.2.1.0\lib\net40\Suave.dll</HintPath>
+    <Reference Include="RabbitMQ.Client">
+      <HintPath>..\packages\RabbitMQ.Client.4.1.3\lib\net451\RabbitMQ.Client.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="System" />
+    <Reference Include="System.Configuration" />
     <Reference Include="System.Core" />
     <Reference Include="System.Numerics" />
     <Reference Include="System.Runtime.InteropServices.RuntimeInformation">
@@ -95,6 +93,16 @@
     <ProjectReference Include="..\AvailabilityService.Events\AvailabilityService.Contract.fsproj">
       <Name>AvailabilityService.Contract</Name>
       <Project>{b11c19e1-c90f-4ae7-9c41-bfe8179fc443}</Project>
+      <Private>True</Private>
+    </ProjectReference>
+    <ProjectReference Include="..\RabbitMQ.Publisher\RabbitMQ.Publisher.fsproj">
+      <Name>RabbitMQ.Publisher</Name>
+      <Project>{4e6fd473-d2a1-400a-9989-ee01a7148755}</Project>
+      <Private>True</Private>
+    </ProjectReference>
+    <ProjectReference Include="..\RabbitMQ.Subscriber\RabbitMQ.Subscriber.fsproj">
+      <Name>RabbitMQ.Subscriber</Name>
+      <Project>{023bf177-bba4-4073-af23-4b19a3d0e356}</Project>
       <Private>True</Private>
     </ProjectReference>
   </ItemGroup>

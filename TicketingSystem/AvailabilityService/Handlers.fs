@@ -24,6 +24,13 @@ let ``confirm order`` (send : BookTicketsCommand -> Async<unit>) (``event id`` :
         ctx.request.rawForm 
         |> System.Text.UTF8Encoding.UTF8.GetString 
         |> (fun s -> JsonConvert.DeserializeObject<ConfirmOrderRequest>(s))
-    do! send { UserId = request.UserId; OrderId = request.OrderId; PaymentReference = request.PaymentReference }
+    let command = { 
+        EventId = ``event id``; 
+        UserId = request.UserId; 
+        OrderId = request.OrderId; 
+        PaymentReference = request.PaymentReference; 
+        Tickets = request.Tickets |> Array.map(fun t -> { TicketTypeId = t.TicketTypeId; Quantity = t.Quantity; PriceEach = t.PricePer }) 
+    }
+    do! send command
     return! ACCEPTED request.OrderId ctx
 }

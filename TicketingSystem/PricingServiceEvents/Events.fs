@@ -1,12 +1,5 @@
 ﻿namespace PricingService.Contract.Events
 
-type QuotedTicket = {
-    TicketTypeId : string
-    Quantity : uint32
-    PriceEach : decimal
-    TotalPrice : decimal
-}
-
 type TicketsQuotedEvent = {
     EventId : string
     OrderId : string
@@ -14,4 +7,9 @@ type TicketsQuotedEvent = {
     Tickets : QuotedTicket[]
     TotalPrice : decimal
     UserId : string
+} and QuotedTicket = {
+    TicketTypeId : string
+    Quantity : uint32
+    PriceEach : decimal
+    TotalPrice : decimal
 }

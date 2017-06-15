@@ -62,12 +62,12 @@ let ``create quote`` query (publish : TicketsQuotedEvent -> Async<unit>) (eventI
             OrderId = priced_tickets.OrderId; 
             PricesValidAt = asAt; 
             TotalPrice = priced_tickets.TotalPrice; 
-            UserId = "user"; 
+            UserId = request.UserId; 
             Tickets = priced_tickets.TicketPrices |> Array.map (fun ticket -> { TicketTypeId = ticket.TicketTypeId; Quantity = ticket.Quantity; PriceEach = ticket.PricePer; TotalPrice = ticket.TotalPrice }) 
         }
 
     match maybePricedTickets with
-    | None -> return! NOT_FOUND "Either the event or ticket types did not exist" ctx
+    | None -> return! NOT_FOUND "Either the event or the ticket types did not exist" ctx
     | Some priced_tickets ->
         do! publish (priced_tickets |> asEvent)
         return! priced_tickets |> JsonConvert.SerializeObject|> ACCEPTED <| ctx  

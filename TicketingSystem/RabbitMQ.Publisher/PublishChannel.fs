@@ -6,9 +6,11 @@ open System.Collections.Concurrent
 open System.Linq
 
 type PublishChannel(applicationName : string, connection : IConnection) =
+    // The acks that are still waiting to be confirmed
     let _pendingAcks = new ConcurrentDictionary<uint64, ManualResetEventSlim>()
 
     let _channel = connection.CreateModel()
+    
     // Use Publisher Confirms
     do _channel.ConfirmSelect()
 
@@ -34,30 +36,52 @@ type PublishChannel(applicationName : string, connection : IConnection) =
     ))
 
     member x.registerEvents(assemblies : string[]) =
+        let (|Command|Event|Ignore|) (t : System.Type) = 
+            if t.Name.EndsWith("Event") then Event
+            elif t.Name.EndsWith("Command") then Command
+            else Ignore
+
+        let isExchangeType = function
+            | Command -> true
+            | Event -> true
+            | Ignore -> false
+            
         // Loop through all the assemblies, get the event types and create an exchange for each type
         assemblies
         |> Array.map (fun path -> System.Reflection.Assembly.ReflectionOnlyLoad(path))
-        |> Array.collect (fun a -> a.GetTypes().Where(fun t -> t.Name.EndsWith("Event")).ToArray())
+        |> Array.collect (fun a -> a.GetTypes().Where(isExchangeType).ToArray())
         |> Array.iter (fun t -> _channel.ExchangeDeclare(t.FullName, "fanout", true, false))
 
     member x.publish (message : obj) = async {
         let properties = _channel.CreateBasicProperties()
-        properties.Headers <- [| ("SentAt", System.DateTime.UtcNow :> obj); ("SentFrom", System.Environment.MachineName :> obj); ("Source", applicationName :> obj) |] |> dict
+        properties.Headers <- [| 
+            ("SentAt", System.DateTime.UtcNow :> obj); 
+            ("SentFrom", System.Environment.MachineName :> obj); 
+            ("Source", applicationName :> obj);
+            ("EnclosedType", message.GetType().FullName :> obj)
+        |] |> dict
+        
         // Use persistent messages
         properties.Persistent <- true
         properties.ContentType <- "application/json"
         
         let body = JsonConvert.SerializeObject(message) |> System.Text.UTF8Encoding.UTF8.GetBytes
         
-        let waitHandle = 
-            _pendingAcks.AddOrUpdate(
-                _channel.NextPublishSeqNo, 
-                System.Func<_,_>(fun _ -> new ManualResetEventSlim()), 
-                System.Func<_,_,_>(fun _ x -> x)
-            ).WaitHandle
+        let mutable waitHandle : WaitHandle option = None
+        System.Threading.Monitor.Enter(_channel)
+        try
+            waitHandle <- 
+                _pendingAcks.AddOrUpdate(
+                    _channel.NextPublishSeqNo, 
+                    System.Func<_,_>(fun _ -> new ManualResetEventSlim()), 
+                    System.Func<_,_,_>(fun _ x -> x)
+                ).WaitHandle |> Some
         
-        _channel.BasicPublish(message.GetType().FullName, "", properties, body)
-        let! x = Async.AwaitWaitHandle waitHandle
-        waitHandle.Dispose()
+            _channel.BasicPublish(message.GetType().FullName, "", properties, body)
+        finally
+            System.Threading.Monitor.Exit(_channel)
+
+        let! x = Async.AwaitWaitHandle waitHandle.Value
+        waitHandle.Value.Dispose()
         ()
     }
