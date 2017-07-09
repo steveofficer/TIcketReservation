@@ -3,6 +3,7 @@ open Suave.Filters
 open Suave.Operators
 open Suave.RequestErrors
 open System.Net
+open System.Data.SqlClient
 
 [<EntryPoint>]
 let main argv = 
@@ -29,7 +30,10 @@ let main argv =
 
     // Create the handler that manages the request to get the list of ticket availability for an event
     let getEventAvailabilityHandler = 
-        let query = AvailabilityService.Queries.``get event ticket availability`` mongoDb
+        let query event = 
+            use connection = new SqlConnection()
+            AvailabilityService.Queries.``get event ticket availability`` connection event
+
         AvailabilityService.Handlers.``get event ticket availability`` query
     
     // Create the handler that manages the request to confirm an order

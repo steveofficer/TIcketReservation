@@ -11,12 +11,10 @@ open MongoDB.Bson
 open Newtonsoft.Json
 open AvailabilityService.Contract.Commands
 
-let ``get event ticket availability`` (query : string -> Async<EventAvailability option * System.DateTime>) (``event id`` : string) (ctx : HttpContext) = async {
-    let! (event, at) = query ``event id``
-    return!
-        match event with
-        | Some event -> event |> JsonConvert.SerializeObject |> OK <| ctx
-        | None -> "Not found" |> NOT_FOUND <| ctx
+let ``get event ticket availability`` (query : string -> Async<EventTicketInfo[]>) (``event id`` : string) (ctx : HttpContext) = async {
+    let at = System.DateTime.UtcNow
+    let! event = query ``event id``
+    return! event |> JsonConvert.SerializeObject |> OK <| ctx
 }
 
 let ``confirm order`` (send : BookTicketsCommand -> Async<unit>) (``event id`` : string) (ctx : HttpContext) = async {

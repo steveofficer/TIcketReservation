@@ -22,11 +22,13 @@ module Responses =
     }
 
 module Db =
-    type EventAvailability = {
-        Id : string
-        Tickets : TicketAvailabilityInfo[]
-    } and TicketAvailabilityInfo = {
+    type EventTicketInfo = {
         TicketTypeId : string
-        AvailableQuantity : uint32
-        OriginalQuantity : uint32
+        RemainingQuantity : int32
+    }
+
+    type AllocationInfo = {
+        TicketTypeId : string
+        TicketId : string
+        Price : decimal
     }

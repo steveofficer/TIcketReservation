@@ -1,92 +1,76 @@
 ﻿namespace AvailabilityBooking
 open AvailabilityService.Contract.Commands
 open AvailabilityService.Contract.Events
-open MongoDB.Driver
+open MongoDB.Bson
+open AvailabilityService.Types.Db
+open System.Data.SqlClient
+open System.Collections.Generic
 
-type EventAvailability = {
-    Id : string
-    Tickets : TicketAvailability[]
-    HandledOrders : System.Collections.Generic.List<AllocatedOrder>
-    mutable Version : uint32
-} and TicketAvailability = {
-    TicketTypeId : string
-    mutable AvailableQuantity : uint32
-} and AllocatedOrder = {
-    OrderId : string
-    Tickets : AllocatedTicket []
-} and AllocatedTicket = {
-    TicketTypeId : string
-    TicketId : string
-    Price : decimal
-}
-
-type BookTicketsCommandHandler(publish, collection : IMongoCollection<EventAvailability>) =
+type BookTicketsCommandHandler
+    (
+    publish, 
+    factory : unit -> Async<SqlConnection>,
+    findExistingAllocation : SqlConnection -> string -> Async<AllocationInfo[]>, 
+    reserveTickets : SqlConnection -> IDictionary<string, uint32> -> Async<SqlTransaction option>, 
+    recordAllocation : SqlTransaction -> TicketsAllocatedEvent -> Async<unit>) =
     inherit RabbitMQ.Subscriber.PublishingMessageHandler<BookTicketsCommand>(publish)
     override this.Handle(message : BookTicketsCommand) = async {
-        let (|EventNotFound|EventFound|) (event : EventAvailability) = 
-            if System.String.IsNullOrEmpty(event.Id) then EventNotFound
-            else EventFound event
+        use! conn = factory()
 
-        let outbound = 
-            match collection.FindSync(fun e -> e.Id = message.EventId).SingleOrDefault() with
-            | EventNotFound -> 
+        // First check to see if the tickets have already been allocated. If so we just need to republish the result
+        let! existingAllocation = findExistingAllocation conn message.OrderId
+        
+        match existingAllocation with
+        | [||] -> 
+            // There are no existing allocations, so we need to try to find tickets
+            // Pre generate the tickets so we don't hold a lock for too long, only lock when we need to.
+            let allocatedTickets = 
+                message.Tickets 
+                |> Array.collect (fun t -> [| for _ in 0u .. t.Quantity do yield { AllocatedTicket.TicketTypeId = t.TicketTypeId; TicketId = ObjectId.GenerateNewId().ToString(); Price = t.PriceEach } |])
+            
+            let allocatedEvent = 
                 {
                     EventId = message.EventId
                     OrderId = message.OrderId
+                    PaymentReference = message.PaymentReference
                     RequestedAt = System.DateTime.UtcNow
-                    Tickets = message.Tickets |> Array.map (fun t -> { TicketTypeId = t.TicketTypeId; Quantity = t.Quantity })
                     UserId = message.UserId
-                    Reason = "The event could not be found"
+                    TotalPrice = allocatedTickets |> Array.map (fun t -> t.Price) |> Array.sum
+                    Tickets = allocatedTickets
+                }
+
+            // Now query and lock the records that we are interested in
+            let! result = message.Tickets |> Array.map (fun t -> (t.TicketTypeId, t.Quantity)) |> dict |> reserveTickets conn
+            match result with
+            | None -> 
+                // Either none of the tickets are available, or some of them aren't available. Either way, we can't fulfill the order as requested.
+                let failedMessage = 
+                    {
+                        EventId = message.EventId
+                        OrderId = message.OrderId
+                        RequestedAt = System.DateTime.UtcNow
+                        Tickets = message.Tickets |> Array.map (fun t -> { TicketTypeId = t.TicketTypeId; Quantity = t.Quantity })
+                        UserId = message.UserId
+                        Reason = "The tickets were not available"
+                    } :> obj
+                do! publish failedMessage
+            
+            | Some transaction ->
+                // We have available tickets. Create the tickets and release them.
+                do! recordAllocation transaction allocatedEvent
+                do! publish allocatedEvent
+        
+        | allocatedTickets ->
+            // We have previously allocated these tickets. Republish the event as there might have been a previous failure that prevented this from happening.
+            let allocatedEvent = 
+                {
+                    EventId = message.EventId
+                    OrderId = message.OrderId
+                    PaymentReference = message.PaymentReference
+                    RequestedAt = System.DateTime.UtcNow
+                    UserId = message.UserId
+                    TotalPrice = allocatedTickets |> Array.map (fun e -> e.Price) |> Array.sum
+                    Tickets = allocatedTickets |> Array.map (fun t -> { TicketTypeId = t.TicketTypeId; TicketId = t.TicketId; Price = t.Price})
                 } :> obj
-            | EventFound e -> this.HandleAllocateOrder message e
-        
-        do! publish outbound
+            do! publish allocatedEvent
     }
-
-    member private this.HandleAllocateOrder(message : BookTicketsCommand) (e) =
-        let availability = e.Tickets |> Array.map (fun t -> (t.TicketTypeId, t.AvailableQuantity)) |> Map.ofArray
-
-        let (|SufficientQuantity|InsufficientQuantity|) (e : EventAvailability) = 
-            let requestedTickets = message.Tickets
-            if requestedTickets |> Array.forall (fun t -> availability.[t.TicketTypeId] >= t.Quantity)
-            then InsufficientQuantity
-            else SufficientQuantity
-        
-        match e with
-        | InsufficientQuantity ->
-            {
-                EventId = message.EventId
-                OrderId = message.OrderId
-                RequestedAt = System.DateTime.UtcNow
-                Tickets = message.Tickets |> Array.map (fun t -> { TicketTypeId = t.TicketTypeId; Quantity = t.Quantity })
-                UserId = message.UserId
-                Reason = "Insufficient Availability"
-            } :> obj
-        
-        | SufficientQuantity ->
-            message.Tickets 
-            |> Array.iter (fun t -> e.Tickets |> Array.find (fun i -> i.TicketTypeId = t.TicketTypeId) |> (fun x -> x.AvailableQuantity <- x.AvailableQuantity - t.Quantity))
-
-            let allocation = {
-                OrderId = message.OrderId
-                Tickets = message.Tickets |> Array.collect (fun t -> [| for x in 0u .. t.Quantity do yield { TicketTypeId = t.TicketTypeId; TicketId = System.Guid.NewGuid().ToString(); Price = t.PriceEach } |])
-            }
-            e.HandledOrders.Add  |> ignore
-            
-            // Update with an optimistic concurrency check.
-            let version = e.Version
-            e.Version <- version + 1u
-
-            let result = collection.ReplaceOne((fun x -> x.Id = message.EventId && x.Version = version), e)
-            if result.IsAcknowledged && result.ModifiedCount > 0L
-            then failwith "Optimistic Concurrency Failure"
-            
-            {
-                EventId = message.EventId
-                OrderId = message.OrderId
-                PaymentReference = message.PaymentReference
-                RequestedAt = System.DateTime.UtcNow
-                UserId = message.UserId
-                TotalPrice = allocation.Tickets |> Array.map (fun e -> e.Price) |> Array.sum
-                Tickets = allocation.Tickets |> Array.map (fun t -> { TicketTypeId = t.TicketTypeId; TicketId = System.Guid.NewGuid().ToString(); Price = t.Price })
-            } :> obj
