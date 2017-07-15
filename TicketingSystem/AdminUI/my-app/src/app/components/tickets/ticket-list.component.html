@@ -1,0 +1,22 @@
+<div *ngIf="ticketsLoaded">
+	<table class="table table-condensed table-striped">
+		<thead>
+			<tr>
+				<th>Description</th>
+				<th>Price</th>
+				<th>Quantity</th>
+			</tr>
+		</thead>
+		<tbody>
+			<tr *ngFor="let ticket of tickets">
+				<td>{{ticket.Description}}</td>
+				<td>{{ticket.Price}}</td>
+				<td>{{ticket.Quantity}}</td>
+			</tr>
+		</tbody>
+	</table>
+</div>
+
+<div *ngIf="!ticketsLoaded">
+	<h3>Loading event tickets...</h3>
+</div>
