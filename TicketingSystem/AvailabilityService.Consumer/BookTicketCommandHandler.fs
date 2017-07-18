@@ -14,6 +14,58 @@ type BookTicketsCommandHandler
     reserveTickets : IDbConnection -> IDictionary<string, uint32> -> Async<IDbTransaction option>, 
     recordAllocation : IDbTransaction -> TicketsAllocatedEvent -> Async<unit>) =
     inherit RabbitMQ.Subscriber.PublishingMessageHandler<BookTicketsCommand>(publish)
+    
+    let ``handle new allocation`` (message : BookTicketsCommand) (conn) = async {
+        // Pre generate the tickets so we don't hold a lock for too long, only lock when we need to.
+        let allocatedTickets = 
+            message.Tickets 
+            |> Array.collect (fun t -> [| for _ in 0u .. t.Quantity do yield { AllocatedTicket.TicketTypeId = t.TicketTypeId; TicketId = ObjectId.GenerateNewId().ToString(); Price = t.PriceEach } |])
+            
+        let allocatedEvent = 
+            {
+                EventId = message.EventId
+                OrderId = message.OrderId
+                PaymentReference = message.PaymentReference
+                RequestedAt = System.DateTime.UtcNow
+                UserId = message.UserId
+                TotalPrice = allocatedTickets |> Array.map (fun t -> t.Price) |> Array.sum
+                Tickets = allocatedTickets
+            }
+
+        // Now query and lock the records that we are interested in
+        let! reservation_result = 
+            message.Tickets 
+            |> Array.map (fun t -> (t.TicketTypeId, t.Quantity)) 
+            |> dict 
+            |> reserveTickets conn
+        match reservation_result with
+        | None -> 
+            // Either none of the tickets are available, or some of them aren't available. Either way, we can't fulfill the order as requested.
+            let failedMessage = 
+                {
+                    EventId = message.EventId
+                    OrderId = message.OrderId
+                    RequestedAt = System.DateTime.UtcNow
+                    Tickets = message.Tickets |> Array.map (fun t -> { TicketTypeId = t.TicketTypeId; Quantity = t.Quantity })
+                    UserId = message.UserId
+                    Reason = "The tickets were not available"
+                } :> obj
+            do! publish failedMessage
+            
+        | Some transaction ->
+            // We have available tickets.
+            // Record the allocation
+            do! recordAllocation transaction allocatedEvent
+            
+            // Commit the transaction now.
+            transaction.Commit()
+
+            // If this fails then the message will be retried, because the allocation is already committed the publish will be retried.
+            do! publish allocatedEvent
+            
+        return ()
+    }
+
     override this.Handle(message : BookTicketsCommand) = async {
         // Open a connection to the database
         use! conn = factory()
@@ -22,45 +74,7 @@ type BookTicketsCommandHandler
         let! existingAllocation = findExistingAllocation conn message.OrderId
         
         match existingAllocation with
-        | [||] -> 
-            // There are no existing allocations, so we need to try to find tickets
-            // Pre generate the tickets so we don't hold a lock for too long, only lock when we need to.
-            let allocatedTickets = 
-                message.Tickets 
-                |> Array.collect (fun t -> [| for _ in 0u .. t.Quantity do yield { AllocatedTicket.TicketTypeId = t.TicketTypeId; TicketId = ObjectId.GenerateNewId().ToString(); Price = t.PriceEach } |])
-            
-            let allocatedEvent = 
-                {
-                    EventId = message.EventId
-                    OrderId = message.OrderId
-                    PaymentReference = message.PaymentReference
-                    RequestedAt = System.DateTime.UtcNow
-                    UserId = message.UserId
-                    TotalPrice = allocatedTickets |> Array.map (fun t -> t.Price) |> Array.sum
-                    Tickets = allocatedTickets
-                }
-
-            // Now query and lock the records that we are interested in
-            let! result = message.Tickets |> Array.map (fun t -> (t.TicketTypeId, t.Quantity)) |> dict |> reserveTickets conn
-            match result with
-            | None -> 
-                // Either none of the tickets are available, or some of them aren't available. Either way, we can't fulfill the order as requested.
-                let failedMessage = 
-                    {
-                        EventId = message.EventId
-                        OrderId = message.OrderId
-                        RequestedAt = System.DateTime.UtcNow
-                        Tickets = message.Tickets |> Array.map (fun t -> { TicketTypeId = t.TicketTypeId; Quantity = t.Quantity })
-                        UserId = message.UserId
-                        Reason = "The tickets were not available"
-                    } :> obj
-                do! publish failedMessage
-            
-            | Some transaction ->
-                // We have available tickets. Create the tickets and release them.
-                do! recordAllocation transaction allocatedEvent
-                do! publish allocatedEvent
-        
+        | [||] -> do! ``handle new allocation`` message conn
         | allocatedTickets ->
             // We have previously allocated these tickets. Republish the event as there might have been a previous failure that prevented this from happening.
             let allocatedEvent = 
@@ -75,3 +89,5 @@ type BookTicketsCommandHandler
                 } :> obj
             do! publish allocatedEvent
     }
+
+    
