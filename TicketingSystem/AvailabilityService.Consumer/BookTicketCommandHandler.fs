@@ -3,18 +3,19 @@ open AvailabilityService.Contract.Commands
 open AvailabilityService.Contract.Events
 open MongoDB.Bson
 open AvailabilityService.Types.Db
-open System.Data.SqlClient
+open System.Data
 open System.Collections.Generic
 
 type BookTicketsCommandHandler
     (
     publish, 
-    factory : unit -> Async<SqlConnection>,
-    findExistingAllocation : SqlConnection -> string -> Async<AllocationInfo[]>, 
-    reserveTickets : SqlConnection -> IDictionary<string, uint32> -> Async<SqlTransaction option>, 
-    recordAllocation : SqlTransaction -> TicketsAllocatedEvent -> Async<unit>) =
+    factory : unit -> Async<IDbConnection>,
+    findExistingAllocation : IDbConnection -> string -> Async<AllocationInfo[]>, 
+    reserveTickets : IDbConnection -> IDictionary<string, uint32> -> Async<IDbTransaction option>, 
+    recordAllocation : IDbTransaction -> TicketsAllocatedEvent -> Async<unit>) =
     inherit RabbitMQ.Subscriber.PublishingMessageHandler<BookTicketsCommand>(publish)
     override this.Handle(message : BookTicketsCommand) = async {
+        // Open a connection to the database
         use! conn = factory()
 
         // First check to see if the tickets have already been allocated. If so we just need to republish the result

@@ -1,6 +1,7 @@
 ﻿open RabbitMQ.Client
 open RabbitMQ.Client.Events
 open RabbitMQ.Subscriber
+open System.Data
 open System.Data.SqlClient
 open AvailabilityService.Queries
 
@@ -11,7 +12,7 @@ let main argv =
     let connectionFactory() = async {
         let conn = new SqlConnection(settings.["sql"].ConnectionString)
         do! conn.OpenAsync() |> Async.AwaitTask
-        return conn
+        return conn :> IDbConnection
     }
 
     // Create the connection to RabbitMQ
