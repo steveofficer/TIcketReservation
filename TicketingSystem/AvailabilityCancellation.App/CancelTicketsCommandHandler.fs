@@ -22,6 +22,6 @@ type EventAvailability = {
 
 type CancelTicketsCommandHandler(publish, collection : IMongoCollection<EventAvailability>) =
     inherit RabbitMQ.Subscriber.PublishingMessageHandler<CancelTicketsCommand>(publish)
-    override this.Handle(message : CancelTicketsCommand) = async {
+    override this.HandleMessage (messageId) (sentAt) (message : CancelTicketsCommand) = async {
         return ()    
     }

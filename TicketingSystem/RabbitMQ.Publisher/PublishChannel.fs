@@ -55,6 +55,7 @@ type PublishChannel(applicationName : string, connection : IConnection) =
     member x.publish (message : obj) = async {
         let properties = _channel.CreateBasicProperties()
         properties.Headers <- [| 
+            ("MessageId", System.Guid.NewGuid() :> obj);
             ("SentAt", System.DateTime.UtcNow :> obj); 
             ("SentFrom", System.Environment.MachineName :> obj); 
             ("Source", applicationName :> obj);

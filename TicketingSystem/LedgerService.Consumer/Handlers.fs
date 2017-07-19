@@ -5,18 +5,10 @@ open PricingService.Contract.Events
 open MongoDB.Driver
 
 type CancellationDetails = {
-    EventId : string
-    OrderId : string
-    UserId : string
-    TransactionDate : System.DateTime
     TicketIds : string[]
 }
 
 type AllocationDetails = {
-    EventId : string
-    OrderId : string
-    UserId : string
-    TransactionDate : System.DateTime
     Tickets : AllocatedTicket[]
 } and AllocatedTicket = {
     TicketTypeId : string
@@ -24,10 +16,6 @@ type AllocationDetails = {
 }
 
 type QuoteDetails = {
-    EventId : string
-    OrderId : string
-    UserId : string
-    TransactionDate : System.DateTime
     PricesQuotedAt : System.DateTime
     Tickets : TicketInfo[]
     TotalPrice : decimal
@@ -37,25 +25,85 @@ type QuoteDetails = {
     PriceEach : decimal
 }
 
-type Transaction =
+type TransactionDetails =
     | Quotation of QuoteDetails
     | Cancellation of CancellationDetails
     | Allocation of AllocationDetails
 
+type Transaction = {
+    SourceId : System.Guid
+    EventId : string
+    OrderId : string
+    UserId : string
+    TransactionDate : System.DateTime    
+    Details : TransactionDetails
+}
+
 type TicketsCancelledHandler(collection : IMongoCollection<Transaction>) =
     inherit RabbitMQ.Subscriber.MessageHandler<TicketsCancelledEvent>()
-    override this.Handle(message : TicketsCancelledEvent) = async {
-        return ()
+    
+    override this.HandleMessage (messageId) (sentAt) (message : TicketsCancelledEvent) = async {
+        // If a record already exists for this message then we have already handled it and we can ignore it.
+        let! count = collection.CountAsync(fun t -> t.SourceId = messageId) |> Async.AwaitTask
+        return
+            match count with
+            | 0L ->
+                // Transform the event to the relevant transaction type and store it in the database
+                {
+                    SourceId = messageId
+                    EventId = message.EventId
+                    OrderId = message.OrderId
+                    UserId = message.UserId
+                    TransactionDate = message.RequestedAt
+                    Details = { TicketIds = message.TicketIds} |> Cancellation 
+                } 
+                |> collection.InsertOne
+            | _ -> ()
     }
 
 type TicketsAllocatedHandler(collection : IMongoCollection<Transaction>) =
     inherit RabbitMQ.Subscriber.MessageHandler<TicketsAllocatedEvent>()
-    override this.Handle(message : TicketsAllocatedEvent) = async {
-        return ()    
+    override this.HandleMessage (messageId) (sentAt) (message : TicketsAllocatedEvent) = async {
+        // If a record already exists for this message then we have already handled it and we can ignore it.
+        let! count = collection.CountAsync(fun t -> t.SourceId = messageId) |> Async.AwaitTask
+        return 
+            match count with
+            | 0L ->
+                // Transform the event to the relevant transaction type and store it in the database
+                {
+                    SourceId = messageId
+                    EventId = message.EventId
+                    OrderId = message.OrderId
+                    UserId = message.UserId
+                    TransactionDate = message.RequestedAt
+                    Details = { AllocationDetails.Tickets = message.Tickets |> Array.map (fun t -> { TicketTypeId = t.TicketTypeId; TicketId = t.TicketId }) } |> Allocation
+                } 
+                |> collection.InsertOne
+            | _ -> ()
     }
 
 type TicketsQuotedHandler(collection : IMongoCollection<Transaction>) =
     inherit RabbitMQ.Subscriber.MessageHandler<TicketsQuotedEvent>()
-    override this.Handle(message : TicketsQuotedEvent) = async {
-        return ()    
+    override this.HandleMessage (messageId) (sentAt) (message : TicketsQuotedEvent) = async {
+        // If a record already exists for this message then we have already handled it and we can ignore it.
+        let! count = collection.CountAsync(fun t -> t.SourceId = messageId) |> Async.AwaitTask
+        return
+            match count with
+            | 0L ->
+                // Transform the event to the relevant transaction type and store it in the database
+                {
+                    SourceId = messageId
+                    EventId = message.EventId
+                    OrderId = message.OrderId
+                    UserId = message.UserId
+                    TransactionDate = sentAt
+                    Details = 
+                        { 
+                            PricesQuotedAt = message.PricesValidAt
+                            TotalPrice = message.TotalPrice 
+                            Tickets = message.Tickets |> Array.map (fun t -> { TicketTypeId = t.TicketTypeId; Quantity = t.Quantity; PriceEach = t.PriceEach }) 
+                        } |> Quotation
+                } 
+                |> collection.InsertOne
+            | _ -> ()
     }

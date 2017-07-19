@@ -66,7 +66,7 @@ type BookTicketsCommandHandler
         return ()
     }
 
-    override this.Handle(message : BookTicketsCommand) = async {
+    override this.HandleMessage(messageId) (sentAt) (message : BookTicketsCommand) = async {
         // Open a connection to the database
         use! conn = factory()
 

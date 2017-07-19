@@ -11,18 +11,18 @@ type ClientCallback = {
 
 type TicketsCancelledHandler(collection : IMongoCollection<ClientCallback>) =
     inherit RabbitMQ.Subscriber.MessageHandler<TicketsCancelledEvent>()
-    override this.Handle(message : TicketsCancelledEvent) = async {
+    override this.HandleMessage (messageId) (sentAt) (message : TicketsCancelledEvent) = async {
         return ()
     }
 
 type TicketsAllocatedHandler(collection : IMongoCollection<ClientCallback>) =
     inherit RabbitMQ.Subscriber.MessageHandler<TicketsAllocatedEvent>()
-    override this.Handle(message : TicketsAllocatedEvent) = async {
+    override this.HandleMessage (messageId) (sentAt) (message : TicketsAllocatedEvent) = async {
         return ()    
     }
 
 type TicketsAllocationFailedHandler(collection : IMongoCollection<ClientCallback>) =
     inherit RabbitMQ.Subscriber.MessageHandler<TicketsAllocationFailedEvent>()
-    override this.Handle(message : TicketsAllocationFailedEvent) = async {
+    override this.HandleMessage (messageId) (sentAt) (message : TicketsAllocationFailedEvent) = async {
         return ()    
     }
