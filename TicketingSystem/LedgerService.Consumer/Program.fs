@@ -4,12 +4,21 @@ open RabbitMQ.Subscriber
 open MongoDB.Driver
 open Handlers
 
+open PricingService.Contract.Events
+
 [<EntryPoint>]
 let main argv =
+    // Map the serializer to the Transaction model
+    MongoDB.Bson.Serialization.BsonClassMap.RegisterClassMap<Model.Transaction>(fun cm -> 
+        cm.AutoMap()
+        cm.MapMember(fun c -> c.Details).SetSerializer(Serializer.LedgerTransactionSerializer()) |> ignore
+    ) |> ignore
+    
     // Create the connection to MongoDB
     let settings = System.Configuration.ConfigurationManager.ConnectionStrings
-    let mongoClient = MongoDB.Driver.MongoClient(settings.["mongo"].ConnectionString)
+    let mongoClient = MongoClient(settings.["mongo"].ConnectionString)
     let mongoDb = mongoClient.GetDatabase(System.Configuration.ConfigurationManager.AppSettings.["database"])
+    let mongoCollection = mongoDb.GetCollection("Ledger")
 
     // Create the connection to RabbitMQ
     let rabbitFactory = RabbitMQ.Client.ConnectionFactory(uri = System.Uri(settings.["rabbit"].ConnectionString))
@@ -17,12 +26,12 @@ let main argv =
 
     // Set up the subscribers
     let service = Service(connection, "LedgerService")
-    TicketsQuotedHandler(mongoDb.GetCollection("Ledger")) |> service.``add subscriber``
-    TicketsAllocatedHandler(mongoDb.GetCollection("Ledger")) |> service.``add subscriber``
-    TicketsCancelledHandler(mongoDb.GetCollection("Ledger")) |> service.``add subscriber``
+
+    TicketsQuotedHandler(mongoCollection) |> service.``add subscriber``
+    TicketsAllocatedHandler(mongoCollection) |> service.``add subscriber``
+    TicketsCancelledHandler(mongoCollection) |> service.``add subscriber``
     
     // Start the service
     service.Start()
-    printfn "Waiting for messages..."
-    System.Console.ReadLine() |> ignore
+
     0
