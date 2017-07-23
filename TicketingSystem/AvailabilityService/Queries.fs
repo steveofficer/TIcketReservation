@@ -13,10 +13,10 @@ let ``get event ticket availability`` (conn : IDbConnection) (``event id`` : str
     command.CommandText <- """SELECT [TicketTypeId], [RemainingQuantity] FROM [EventTickets] WHERE [EventId] = @eventId"""
     
     // Use parameterized SQL to provide the eventId filter to avoid a SQL Injection attack
-    let event_parameter = command.CreateParameter()
-    event_parameter.ParameterName <- "@eventId"
-    event_parameter.Value <- ``event id``
-    
+    command.CreateParameter(ParameterName = "@eventId", Value = ``event id``)
+    |> command.Parameters.Add
+    |> ignore
+
     // Run the query asynchronously and return the queried data
     return! async { 
         use reader = command.ExecuteReader() 
@@ -35,15 +35,35 @@ let ``find existing allocations`` (conn : IDbConnection) (``order id`` : string)
     command.CommandText <- """SELECT [TicketTypeId], [TicketId], [Price] FROM [AllocatedTickets] WHERE [OrderId] = @orderid"""
     
     // Use parameterized SQL to provide the orderId filter to avoid a SQL Injection attack
-    let order_parameter = command.CreateParameter()
-    order_parameter.ParameterName <- "@orderId"
-    order_parameter.Value <- ``order id``
+    command.CreateParameter(ParameterName = "@orderId", Value = ``order id``)
+    |> command.Parameters.Add
+    |> ignore
     
     return! async {
         use reader = command.ExecuteReader()
         return [|
             while reader.Read() do
-                yield { TicketTypeId = reader.GetString(0); TicketId = reader.GetString(1); Price = reader.GetDecimal(2) }
+                yield { AllocationInfo.TicketTypeId = reader.GetString(0); TicketId = reader.GetString(1); Price = reader.GetDecimal(2) }
+        |]
+    }
+}
+
+/// Find any existing allocated tickets for the requested order id
+let ``has existing cancellations`` (conn : IDbConnection) (``cancellation id`` : string) = async {
+    // Create the command
+    use command = conn.CreateCommand()
+    command.CommandText <- """SELECT TicketTypeId, TicketId FROM [CancelledTickets] WHERE [TicketId] IN @cancellationId"""
+    
+    // Use parameterized SQL to provide the orderId filter to avoid a SQL Injection attack
+    command.CreateParameter(ParameterName = "@cancellationId", Value = ``cancellation id``) 
+    |> command.Parameters.Add
+    |> ignore
+
+    return! async {
+        use reader = command.ExecuteReader()
+        return [|
+            while reader.Read() do
+                yield { CancellationInfo.TicketTypeId = reader.GetString(0); TicketId = reader.GetString(1) }
         |]
     }
 }
@@ -61,9 +81,9 @@ let ``reserve tickets`` (conn : IDbConnection) (tickets : IDictionary<string, ui
     command.CommandText <- """SELECT [TicketTypeId], [RemainingQuantity] FROM [EventTickets] WHERE [RemainingQuantity] <> 0 AND [TicketTypeId] IN @ticketIds"""
     
     // Use parameterized SQL to provide the orderId filter to avoid a SQL Injection attack
-    let tickets_parameter = command.CreateParameter()
-    tickets_parameter.ParameterName <- "@tickets"
-    tickets_parameter.Value <- tickets.Keys
+    command.CreateParameter(ParameterName = "@tickets", Value = tickets.Keys)
+    |> command.Parameters.Add
+    |> ignore
         
     let! availableTickets = async {
         use reader = command.ExecuteReader()

@@ -17,6 +17,7 @@ type TicketsAllocatedEvent = {
 type TicketsCancelledEvent = {
     EventId : string
     OrderId : string
+    CancellationId : string
     RequestedAt : System.DateTime
     TicketIds : string[]
     UserId : string

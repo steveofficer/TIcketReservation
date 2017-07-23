@@ -60,7 +60,7 @@ type BookTicketsCommandHandler
             // Commit the transaction now.
             transaction.Commit()
 
-            // If this fails then the message will be retried, because the allocation is already committed the publish will be retried.
+            // If this fails then the message will be retried. Because the allocation has already committed the publish will be retried.
             do! publish allocatedEvent
             
         return ()
@@ -70,13 +70,13 @@ type BookTicketsCommandHandler
         // Open a connection to the database
         use! conn = factory()
 
-        // First check to see if the tickets have already been allocated. If so we just need to republish the result
+        // First check to see if the tickets have already been allocated. If so we just need to re-publish the result, it might be a retry of a failed attempt
         let! existingAllocation = findExistingAllocation conn message.OrderId
         
         match existingAllocation with
         | [||] -> do! ``handle new allocation`` message conn
         | allocatedTickets ->
-            // We have previously allocated these tickets. Republish the event as there might have been a previous failure that prevented this from happening.
+            // We have previously allocated these tickets. Re-publish the event as there might have been a previous failure that prevented this from happening.
             let allocatedEvent = 
                 {
                     EventId = message.EventId

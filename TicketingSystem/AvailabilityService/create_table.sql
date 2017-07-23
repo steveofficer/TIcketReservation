@@ -18,3 +18,11 @@ CREATE TABLE AllocatedTickets(
 	CONSTRAINT PK_AllocatedTicketID PRIMARY KEY (TicketId),
 	CONSTRAINT FK_TicketTypes FOREIGN KEY (TicketTypeId) REFERENCES EventTickets(TicketTypeId)
 );
+
+CREATE TABLE CancelledTickets(
+	TicketTypeId VARCHAR(50) NOT NULL,
+	TicketId VARCHAR(50) NOT NULL,
+	CancellationId VARCHAR(50) NOT NULL,
+	CONSTRAINT PK_AllocatedTicketID PRIMARY KEY (TicketId),
+	CONSTRAINT FK_TicketTypes FOREIGN KEY (TicketTypeId) REFERENCES EventTickets(TicketTypeId)
+);

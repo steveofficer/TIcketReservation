@@ -17,18 +17,23 @@ let ``get event ticket availability`` (query : string -> Async<EventTicketInfo[]
     return! event |> JsonConvert.SerializeObject |> OK <| ctx
 }
 
-let ``confirm order`` (send : BookTicketsCommand -> Async<unit>) (``event id`` : string) (ctx : HttpContext) = async {
+let ``confirm order`` verify_signature (send : BookTicketsCommand -> Async<unit>) (``event id`` : string) (ctx : HttpContext) = async {
     let request = 
         ctx.request.rawForm 
         |> System.Text.UTF8Encoding.UTF8.GetString 
         |> (fun s -> JsonConvert.DeserializeObject<ConfirmOrderRequest>(s))
-    let command = { 
-        EventId = ``event id``; 
-        UserId = request.UserId; 
-        OrderId = request.OrderId; 
-        PaymentReference = request.PaymentReference; 
-        Tickets = request.Tickets |> Array.map(fun t -> { TicketTypeId = t.TicketTypeId; Quantity = t.Quantity; PriceEach = t.PricePer }) 
-    }
-    do! send command
-    return! ACCEPTED request.OrderId ctx
+    
+    if not(verify_signature request.OrderId request.Tickets)
+    then 
+        return! BAD_REQUEST "The quote is not valid. Antiforgery detection failed" ctx
+    else
+        let command = { 
+            EventId = ``event id``; 
+            UserId = request.UserId; 
+            OrderId = request.OrderId; 
+            PaymentReference = request.PaymentReference; 
+            Tickets = request.Tickets |> Array.map(fun t -> { TicketTypeId = t.TicketTypeId; Quantity = t.Quantity; PriceEach = t.PricePer }) 
+        }
+        do! send command
+        return! ACCEPTED request.OrderId ctx
 }

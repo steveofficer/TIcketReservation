@@ -19,25 +19,30 @@ let main argv =
     publisher.registerEvents([| "AvailabilityService.Contract"; "PricingService.Contract" |])
 
     // Create the handler that manages the request to create a quote for a ticket request
-    let quoteTicketsHandler = 
+    let ``generate a quote`` = 
         let query = PricingService.Queries.``get ticket prices`` mongoDb
-        PricingService.Handlers.``create quote`` query publisher.publish
+        PricingService.Handlers.``create quote`` (fun _ _ -> "") query publisher.publish
     
     // Create the handler that manages the request to get the list of ticket prices for an event
-    let getEventPricesHandler = 
+    let ``get events`` = 
+        let query = AdminService.Queries.``get events`` mongoDb
+        AdminService.Handlers.``get events`` query
+
+    // Create the handler that manages the request to get the list of ticket prices for an event
+    let ``get ticket prices for event`` = 
         let query = PricingService.Queries.``get event ticket prices`` mongoDb
         PricingService.Handlers.``get event ticket prices`` query
 
     // Create the handler that manages the request to get the list of ticket availability for an event
-    let getEventAvailabilityHandler = 
+    let ``get ticket availability for event`` = 
         let query event = 
-            use connection = new SqlConnection()
+            use connection = new SqlConnection(settings.["sql"].ConnectionString)
             AvailabilityService.Queries.``get event ticket availability`` connection event
 
         AvailabilityService.Handlers.``get event ticket availability`` query
     
     // Create the handler that manages the request to confirm an order
-    let orderTicketsHandler = AvailabilityService.Handlers.``confirm order`` publisher.publish
+    let ``order the tickets`` = AvailabilityService.Handlers.``confirm order`` (fun _ _ -> true) publisher.publish
 
     // Start the Suave Server so it start listening for requests
     let port = Sockets.Port.Parse <| argv.[0]
@@ -51,14 +56,15 @@ let main argv =
         (choose [
             GET >=>
                 choose [
-                    pathScan "/event/%s/pricing" getEventPricesHandler
-                    pathScan "/event/%s/availability" getEventAvailabilityHandler
+                    path "/events" ``get events``
+                    pathScan "/event/%s/pricing" ``get ticket prices for event``
+                    pathScan "/event/%s/availability" ``get ticket availability for event``
                 ]
             
             POST >=> 
                 choose [
-                    pathScan "/event/%s/quote" quoteTicketsHandler
-                    pathScan "/event/%s/order" orderTicketsHandler
+                    pathScan "/event/%s/quote" ``generate a quote``
+                    pathScan "/event/%s/order" ``order the tickets``
                 ]
                 
             NOT_FOUND "The requested path is not valid."

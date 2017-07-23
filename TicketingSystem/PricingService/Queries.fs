@@ -12,7 +12,7 @@ let ``get event ticket prices`` (db : IMongoDatabase) (``event id`` : string) = 
     let collection = db.GetCollection<EventPricing>(``collection name``)
     // Execute the query
     let! result = collection.Find((fun e -> e.Id = ``event id``)).FirstOrDefaultAsync() |> Async.AwaitTask
-    // Return the result + the time it was executed at
+    // Return the result + the time it was accurate at
     return ((if box result = null then None else Some result), System.DateTime.UtcNow) 
 }
 

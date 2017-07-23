@@ -32,3 +32,8 @@ module Db =
         TicketId : string
         Price : decimal
     }
+
+    type CancellationInfo = {
+        TicketTypeId : string
+        TicketId : string
+    }

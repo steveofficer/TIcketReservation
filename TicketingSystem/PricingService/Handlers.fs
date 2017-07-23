@@ -19,7 +19,7 @@ let ``get event ticket prices`` (query : string -> Async<EventPricing option * S
         | None -> NOT_FOUND "Event not found" ctx
 }
 
-let ``create quote`` query (publish : TicketsQuotedEvent -> Async<unit>) (eventId : string) (ctx : HttpContext) = async {
+let ``create quote`` create_signature query (publish : TicketsQuotedEvent -> Async<unit>) (eventId : string) (ctx : HttpContext) = async {
     let request = 
         ctx.request.rawForm 
         |> System.Text.UTF8Encoding.UTF8.GetString 
@@ -37,10 +37,12 @@ let ``create quote`` query (publish : TicketsQuotedEvent -> Async<unit>) (eventI
                 }
             )
             |> (fun pricedTickets -> 
+                let orderId =  ObjectId.GenerateNewId().ToString()
                 { 
-                    OrderId = ObjectId.GenerateNewId().ToString()
+                    OrderId = orderId
                     TicketPrices = pricedTickets
                     TotalPrice = pricedTickets |> Array.sumBy (fun t -> t.TotalPrice)
+                    AntiForgeryToken = create_signature orderId pricedTickets
                 }
             )
 
