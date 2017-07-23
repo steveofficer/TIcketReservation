@@ -20,6 +20,7 @@ type TicketsCancelledEvent = {
     CancellationId : string
     RequestedAt : System.DateTime
     TicketIds : string[]
+    TotalPrice : decimal
     UserId : string
 }
 

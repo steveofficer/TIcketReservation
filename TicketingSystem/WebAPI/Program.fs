@@ -66,7 +66,11 @@ let main argv =
                     pathScan "/event/%s/quote" ``generate a quote``
                     pathScan "/event/%s/order" ``order the tickets``
                 ]
-                
+            DELETE >=>
+                choose [        
+                    pathScan "/event/%s/order" ``cancel tickets``
+                ]
+
             NOT_FOUND "The requested path is not valid."
         ] >=> Writers.setMimeType "application/json") 
     0
