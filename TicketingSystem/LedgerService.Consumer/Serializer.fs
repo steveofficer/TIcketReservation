@@ -1,5 +1,5 @@
 ﻿module Serializer
-open Model
+open LedgerService.Types
 open MongoDB.Bson
 
 type LedgerTransactionSerializer() = 

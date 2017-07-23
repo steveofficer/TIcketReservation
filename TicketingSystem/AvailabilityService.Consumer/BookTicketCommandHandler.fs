@@ -87,7 +87,7 @@ type BookTicketsCommandHandler
                     TotalPrice = allocatedTickets |> Array.map (fun e -> e.Price) |> Array.sum
                     Tickets = allocatedTickets |> Array.map (fun t -> { TicketTypeId = t.TicketTypeId; TicketId = t.TicketId; Price = t.Price})
                 } :> obj
-            do! publish allocatedEvent
+            do! this.Publish allocatedEvent
     }
 
     

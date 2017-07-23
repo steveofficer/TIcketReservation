@@ -23,8 +23,9 @@ type MessageHandler<'T>() =
 
 /// And implementation base class for RabbitMQ message handlers that deserializes the content from JSON and also provides access to a RabbitMQ publish channel
 [<AbstractClass>]
-type PublishingMessageHandler<'T>(publish) =
+type PublishingMessageHandler<'T>(publish : obj -> Async<unit>) =
     inherit MessageHandler<'T>()
+    member this.Publish (message : obj) = publish message
 
 /// A helper class that initializes and manages message receipt from RabbitMQ
 type Service(connection : RabbitMQ.Client.IConnection, queue_name) =

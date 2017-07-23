@@ -4,6 +4,7 @@ open RabbitMQ.Subscriber
 open System.Data
 open System.Data.SqlClient
 open AvailabilityService.Queries
+open AvailabilityService.Commands
 
 [<EntryPoint>]
 let main argv =

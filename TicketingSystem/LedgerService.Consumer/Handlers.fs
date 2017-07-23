@@ -2,18 +2,18 @@
 
 open AvailabilityService.Contract.Events
 open PricingService.Contract.Events
-open Model
+open LedgerService.Types
 open MongoDB.Driver
 
-type TicketsCancelledHandler(collection : IMongoCollection<Transaction>) =
+type TicketsCancelledHandler(handled : System.Guid -> Async<bool>) =
     inherit RabbitMQ.Subscriber.MessageHandler<TicketsCancelledEvent>()
     
     override this.HandleMessage (messageId) (sentAt) (message : TicketsCancelledEvent) = async {
         // If a record already exists for this message then we have already handled it and we can ignore it.
-        let! count = collection.CountAsync(fun t -> t.SourceId = messageId) |> Async.AwaitTask
+        let! r = handled messageId
         return
-            match count with
-            | 0L ->
+            match r with
+            | false ->
                 // Transform the event to the relevant transaction type and store it in the database
                 {
                     SourceId = messageId
@@ -23,15 +23,15 @@ type TicketsCancelledHandler(collection : IMongoCollection<Transaction>) =
                     TransactionDate = message.RequestedAt
                     Details = { TicketIds = message.TicketIds} |> Cancellation 
                 } 
-                |> collection.InsertOne
-            | _ -> ()
+                |> ``record cancellation``
+            | true -> ()
     }
 
-type TicketsAllocatedHandler(collection : IMongoCollection<Transaction>) =
+type TicketsAllocatedHandler(handled : System.Guid -> Async<bool>) =
     inherit RabbitMQ.Subscriber.MessageHandler<TicketsAllocatedEvent>()
     override this.HandleMessage (messageId) (sentAt) (message : TicketsAllocatedEvent) = async {
         // If a record already exists for this message then we have already handled it and we can ignore it.
-        let! count = collection.CountAsync(fun t -> t.SourceId = messageId) |> Async.AwaitTask
+        let! count = 
         return 
             match count with
             | 0L ->
@@ -48,7 +48,7 @@ type TicketsAllocatedHandler(collection : IMongoCollection<Transaction>) =
             | _ -> ()
     }
 
-type TicketsQuotedHandler(collection : IMongoCollection<Transaction>) =
+type TicketsQuotedHandler(handled : System.Guid -> Async<bool>) =
     inherit RabbitMQ.Subscriber.MessageHandler<TicketsQuotedEvent>()
     override this.HandleMessage (messageId) (sentAt) (message : TicketsQuotedEvent) = async {
         // If a record already exists for this message then we have already handled it and we can ignore it.

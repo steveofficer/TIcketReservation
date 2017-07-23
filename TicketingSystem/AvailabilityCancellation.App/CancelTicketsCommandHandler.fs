@@ -7,10 +7,11 @@ open System.Data
 
 /// When a cancel tickets command is received we need to replenish the available ticket pool with
 /// the tickets that have been cancelled.
-type CancelTicketsCommandHandler(
+type CancelTicketsCommandHandler
+    (
     publish, 
     factory : unit -> Async<IDbConnection>,
-    findExistingCancellation : IDbConnection -> string[] -> Async<CancellationInfo[]>,
+    cancellationExists : IDbConnection -> string -> Async<bool>,
     cancelTickets : IDbConnection -> TicketsCancelledEvent -> Async<unit>) =
     inherit RabbitMQ.Subscriber.PublishingMessageHandler<CancelTicketsCommand>(publish)
     
@@ -18,17 +19,16 @@ type CancelTicketsCommandHandler(
         use! conn = factory()
         
         // Check to see if the cancellation has already been handled
-        let! cancelledTickets = hasHandeledCancellation conn messageId
+        let! alreadyHandeled = cancellationExists conn message.CancellationId
         
-        match cancelledTickets with
-        | [||] ->
-            // Cancel all of the tickets
-            {}
-        | cancelled ->
-            let toCancel = message.TicketIds |> Array.except cancelled
-
-        // If it has then republish the event
-        // If it hasn't then cancel the tickets
-        // And publish the event
+        if alreadyHandeled 
+        then
+            // Just re-publish the event
+            do! this.Publish 12
+        else
+            // Record the cancellation
+            cancelTickets
+            // Publish the event
+            do! this.Publish conn
         return () 
     }

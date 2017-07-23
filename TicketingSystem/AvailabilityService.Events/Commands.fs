@@ -12,10 +12,15 @@ type BookTicketsCommand = {
     PriceEach : decimal
 }
 
-
 type CancelTicketsCommand = {
     EventId : string
     UserId : string
     OrderId : string
-    TicketIds : string []
+    CancellationId : string
+    Tickets : CancelledTicket[]
+    TotalPrice : decimal
+} and CancelledTicket = {
+    TicketTypeId : string
+    TicketId : string
+    Price : decimal
 }

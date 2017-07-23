@@ -23,10 +23,20 @@ let main argv =
         let query = PricingService.Queries.``get ticket prices`` mongoDb
         PricingService.Handlers.``create quote`` (fun _ _ -> "") query publisher.publish
     
-    // Create the handler that manages the request to get the list of ticket prices for an event
+    // Create the handler that manages the request to get the list of events
     let ``get events`` = 
         let query = AdminService.Queries.``get events`` mongoDb
         AdminService.Handlers.``get events`` query
+
+    // Create the handler that manages the request to get the list of tickets purchased by a user
+    let ``get user tickets`` =  
+        let query = LedgerService.Queries.``get user tickets`` mongoDb
+        LedgerService.Handlers.``get tickets`` query
+
+    // Create the handler that manages the request to cancel tickets
+    let ``cancel tickets`` =  
+        let query = LedgerService.Queries.``get ticket prices`` mongoDb
+        AvailabilityService.Handlers.``cancel tickets`` query
 
     // Create the handler that manages the request to get the list of ticket prices for an event
     let ``get ticket prices for event`` = 
@@ -56,6 +66,7 @@ let main argv =
         (choose [
             GET >=>
                 choose [
+                    path "/users/%s/tickets" ``get user tickets``
                     path "/events" ``get events``
                     pathScan "/event/%s/pricing" ``get ticket prices for event``
                     pathScan "/event/%s/availability" ``get ticket availability for event``
@@ -66,6 +77,7 @@ let main argv =
                     pathScan "/event/%s/quote" ``generate a quote``
                     pathScan "/event/%s/order" ``order the tickets``
                 ]
+
             DELETE >=>
                 choose [        
                     pathScan "/event/%s/order" ``cancel tickets``

@@ -1,10 +1,16 @@
-﻿module Model
+﻿module LedgerService.Types
 
 type CancellationDetails = {
-    TicketIds : string[]
+    CancellationId : string
+    TotalPrice : decimal
+    Tickets : CancelledTicket[]
+} and CancelledTicket = {
+    TicketTypeId : string
+    TicketId : string
 }
 
 type AllocationDetails = {
+    TotalPrice : decimal
     Tickets : AllocatedTicket[]
 } and AllocatedTicket = {
     TicketTypeId : string
@@ -34,5 +40,3 @@ type Transaction = {
     TransactionDate : System.DateTime    
     Details : TransactionDetails
 }
-
-

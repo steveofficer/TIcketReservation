@@ -1,14 +1,19 @@
 ﻿open RabbitMQ.Client
 open RabbitMQ.Client.Events
 open RabbitMQ.Subscriber
-open MongoDB.Driver
+open System.Data
+open System.Data.SqlClient
+open AvailabilityService.Queries
+open AvailabilityService.Commands
 
 [<EntryPoint>]
 let main argv =
-    // Create the connection to MongoDB
     let settings = System.Configuration.ConfigurationManager.ConnectionStrings
-    let mongoClient = MongoDB.Driver.MongoClient(settings.["mongo"].ConnectionString)
-    let mongoDb = mongoClient.GetDatabase(System.Configuration.ConfigurationManager.AppSettings.["database"])
+    let connectionFactory() = async {
+        let conn = new SqlConnection(settings.["sql"].ConnectionString)
+        do! conn.OpenAsync() |> Async.AwaitTask
+        return conn :> IDbConnection
+    }
 
     // Create the connection to RabbitMQ
     let rabbitFactory = RabbitMQ.Client.ConnectionFactory(uri = System.Uri(settings.["rabbit"].ConnectionString))
@@ -20,7 +25,7 @@ let main argv =
     
     // Set up the subscribers
     let service = Service(connection, "Availability.Cancellation")
-    AvailabilityCancellation.CancelTicketsCommandHandler(publisher.publish, mongoDb.GetCollection("Availability")) |> service.``add subscriber``
+    AvailabilityCancellation.CancelTicketsCommandHandler(publisher.publish, connectionFactory, ``cancellation exists``, ``record cancellation``) |> service.``add subscriber``
     
     // Start the service
     service.Start()

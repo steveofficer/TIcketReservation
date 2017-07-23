@@ -19,9 +19,12 @@ type TicketsCancelledEvent = {
     OrderId : string
     CancellationId : string
     RequestedAt : System.DateTime
-    TicketIds : string[]
+    Tickets : CancelledTicket[]
     TotalPrice : decimal
     UserId : string
+} and CancelledTicket = {
+    TicketTypeId : string
+    TicketId : string
 }
 
 type TicketsAllocationFailedEvent = {

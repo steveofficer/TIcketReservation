@@ -4,6 +4,8 @@ open Suave.Operators
 open Suave.RequestErrors
 open System.Net
 open System.Data.SqlClient
+open AdminService.Types
+open AdminService.Queries
 
 [<EntryPoint>]
 let main argv = 
@@ -12,6 +14,20 @@ let main argv =
     let mongoClient = MongoDB.Driver.MongoClient(settings.["mongo"].ConnectionString)
     let mongoDb = mongoClient.GetDatabase(System.Configuration.ConfigurationManager.AppSettings.["database"])
     
+    let findAllEvents() = AdminService.Queries.``get all events`` mongoDb
+    
+    let getEventDetails = AdminService.Queries.``get event`` mongoDb
+
+    let getEventTicketDetails = AdminService.Queries.``get event ticket details`` mongoDb
+
+    let createEvent = AdminService.Commands.``create event``
+
+    let updateEvent = AdminService.Commands.``update event``
+
+    let createTicketType = AdminService.Commands.``create event ticket type``
+
+    let updateTicketType = AdminService.Commands.``update event ticket type``
+
     // Start the Suave Server so it start listening for requests
     let port = Sockets.Port.Parse <| argv.[0]
  
@@ -23,20 +39,19 @@ let main argv =
         serverConfig
         (choose [
             GET >=> choose [
-                path "/admin/events" Handlers.``get all events``
-                pathScan "/admin/events/%s" Handlers.``get event details``
-                pathScan "/admin/events/%s/tickets" Handlers.``get event tickets``
-                pathScan "/admin/events/%s/tickets/%s" Handlers.``get event ticket details``
+                path "/admin/events" >=> (Handlers.``get all events`` findAllEvents)
+                pathScan "/admin/events/%s" (Handlers.``get event details`` getEventDetails)
+                pathScan "/admin/events/%s/tickets/%s" (fun (eventId : string, ticketTypeId : string) -> Handlers.``get event ticket details`` getEventTicketDetails eventId ticketTypeId)
             ]
 
             PUT >=> choose [
-                path "/admin/events" Handlers.``create event``
-                pathScan "/admin/events/%s/tickets" Handlers.``create ticket type``
+                path "/admin/events" >=> Handlers.``create event`` createEvent
+                pathScan "/admin/events/%s/tickets" (Handlers.``create ticket type`` createTicketType)
             ]
 
             POST >=> choose [
-                path "/admin/events/%s" ``update event``
-                pathScan "/admin/events/%s/tickets/%s" ``update ticket type``
+                pathScan "/admin/events/%s" (Handlers.``update event`` updateEvent)
+                pathScan "/admin/events/%s/tickets/%s" (fun (event, ticketType) -> Handlers.``update ticket type`` updateTicketType event ticketType)
             ]
             
             NOT_FOUND "The requested path is not valid."
