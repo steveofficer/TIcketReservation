@@ -55,7 +55,6 @@
     <Compile Include="Types.fs" />
     <Compile Include="Queries.fs" />
     <Compile Include="Commands.fs" />
-    <Compile Include="Handlers.fs" />
     <Content Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
@@ -78,10 +77,6 @@
     <Reference Include="mscorlib" />
     <Reference Include="Newtonsoft.Json">
       <HintPath>..\packages\Newtonsoft.Json.10.0.2\lib\net45\Newtonsoft.Json.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="Suave">
-      <HintPath>..\packages\Suave.2.1.0\lib\net40\Suave.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="System" />

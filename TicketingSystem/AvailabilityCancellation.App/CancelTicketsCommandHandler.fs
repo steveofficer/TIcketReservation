@@ -1,7 +1,7 @@
 ﻿namespace AvailabilityCancellation
 open AvailabilityService.Contract.Commands
 open AvailabilityService.Contract.Events
-open AvailabilityService.Types.Db
+open AvailabilityService.Types
 open MongoDB.Driver
 open System.Data
 

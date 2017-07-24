@@ -1,8 +1,7 @@
 ﻿module AvailabilityService.Queries
 
-open AvailabilityService.Types.Db
+open AvailabilityService.Types
 open AvailabilityService.Contract.Events
-open AvailabilityService.Types.Db
 open System.Data
 open System.Collections.Generic
 

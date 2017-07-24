@@ -1,39 +1,17 @@
 ﻿namespace AvailabilityService.Types
 
-module Requests =
-    type ConfirmOrderRequest = {
-        UserId : string
-        PaymentReference : string
-        OrderId : string
-        Tickets : TicketInfo[]
-    } and TicketInfo = {
-        TicketTypeId : string
-        Quantity : uint32
-        PricePer : decimal
-    }
+type EventTicketInfo = {
+    TicketTypeId : string
+    RemainingQuantity : int32
+}
 
-module Responses = 
-    type AvailabilityResponse = {
-        OrderId : string
-        TicketAvailability : TicketQuantity[]
-    } and TicketQuantity = {
-        TicketTypeId : string
-        Quantity : uint32
-    }
+type AllocationInfo = {
+    TicketTypeId : string
+    TicketId : string
+    Price : decimal
+}
 
-module Db =
-    type EventTicketInfo = {
-        TicketTypeId : string
-        RemainingQuantity : int32
-    }
-
-    type AllocationInfo = {
-        TicketTypeId : string
-        TicketId : string
-        Price : decimal
-    }
-
-    type CancellationInfo = {
-        TicketTypeId : string
-        TicketId : string
-    }
+type CancellationInfo = {
+    TicketTypeId : string
+    TicketId : string
+}

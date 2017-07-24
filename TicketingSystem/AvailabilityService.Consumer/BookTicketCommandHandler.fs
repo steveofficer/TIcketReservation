@@ -2,7 +2,7 @@
 open AvailabilityService.Contract.Commands
 open AvailabilityService.Contract.Events
 open MongoDB.Bson
-open AvailabilityService.Types.Db
+open AvailabilityService.Types
 open System.Data
 open System.Collections.Generic
 

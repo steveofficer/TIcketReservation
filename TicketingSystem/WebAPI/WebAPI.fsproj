@@ -103,14 +103,39 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\AdminService.Web\AdminService.Web.fsproj">
+      <Name>AdminService.Web</Name>
+      <Project>{d55d232e-a3f6-49a2-afac-9aa692823fec}</Project>
+      <Private>True</Private>
+    </ProjectReference>
+    <ProjectReference Include="..\AdminService\AdminService.fsproj">
+      <Name>AdminService</Name>
+      <Project>{ff52a4f2-38b8-497d-b1d6-402955a47429}</Project>
+      <Private>True</Private>
+    </ProjectReference>
     <ProjectReference Include="..\AvailabilityService.Events\AvailabilityService.Contract.fsproj">
       <Name>AvailabilityService.Contract</Name>
       <Project>{b11c19e1-c90f-4ae7-9c41-bfe8179fc443}</Project>
       <Private>True</Private>
     </ProjectReference>
+    <ProjectReference Include="..\AvailabilityService.Web\AvailabilityService.Web.fsproj">
+      <Name>AvailabilityService.Web</Name>
+      <Project>{0e123df5-4807-4d77-a6b9-ec1eee32b14b}</Project>
+      <Private>True</Private>
+    </ProjectReference>
     <ProjectReference Include="..\AvailabilityService\AvailabilityService.fsproj">
       <Name>AvailabilityService (AvailabilityService\AvailabilityService)</Name>
       <Project>{cd3a999f-9053-4eef-bde7-689349cac6a5}</Project>
+      <Private>True</Private>
+    </ProjectReference>
+    <ProjectReference Include="..\Ledger.Service\LedgerService.fsproj">
+      <Name>LedgerService (LedgerService\LedgerService)</Name>
+      <Project>{37c6e398-594b-420a-aab3-a17ad3588017}</Project>
+      <Private>True</Private>
+    </ProjectReference>
+    <ProjectReference Include="..\LedgerService.Web\LedgerService.Web.fsproj">
+      <Name>LedgerService.Web</Name>
+      <Project>{b3ce251d-79c7-4a90-a16a-a657824df9cf}</Project>
       <Private>True</Private>
     </ProjectReference>
     <ProjectReference Include="..\PricingServiceEvents\PricingService.Contract.fsproj">

@@ -25,8 +25,8 @@ let main argv =
     
     // Create the handler that manages the request to get the list of events
     let ``get events`` = 
-        let query = AdminService.Queries.``get events`` mongoDb
-        AdminService.Handlers.``get events`` query
+        let query() = AdminService.Queries.``get all events`` mongoDb
+        AdminService.Handlers.``get all events`` query
 
     // Create the handler that manages the request to get the list of tickets purchased by a user
     let ``get user tickets`` =  
@@ -36,7 +36,7 @@ let main argv =
     // Create the handler that manages the request to cancel tickets
     let ``cancel tickets`` =  
         let query = LedgerService.Queries.``get ticket prices`` mongoDb
-        AvailabilityService.Handlers.``cancel tickets`` query
+        AvailabilityService.Handlers.``cancel tickets`` query publisher.publish
 
     // Create the handler that manages the request to get the list of ticket prices for an event
     let ``get ticket prices for event`` = 
@@ -66,8 +66,8 @@ let main argv =
         (choose [
             GET >=>
                 choose [
-                    path "/users/%s/tickets" ``get user tickets``
-                    path "/events" ``get events``
+                    pathScan "/users/%s/tickets" ``get user tickets``
+                    path "/events" >=> ``get events``
                     pathScan "/event/%s/pricing" ``get ticket prices for event``
                     pathScan "/event/%s/availability" ``get ticket availability for event``
                 ]

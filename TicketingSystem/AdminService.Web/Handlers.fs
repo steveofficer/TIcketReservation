@@ -1,11 +1,10 @@
-﻿module Handlers
+﻿module AdminService.Handlers
 
 open Suave
 open Suave.Successful
 open Suave.RequestErrors
 open Suave.Operators
 open Newtonsoft.Json
-open MongoDB.Bson
 open AdminService.Types
 
 let ``get all events`` (query : unit -> Async<EventSummary[]>) (ctx : HttpContext) = async {
@@ -25,13 +24,13 @@ let ``get event ticket details`` (query : string -> string -> Async<TicketInfo[]
     return! ticket |> JsonConvert.SerializeObject |> OK <| ctx
 }
 
-let ``create event`` (command : EventDetail -> Async<unit>) (ctx : HttpContext) = async {
+let ``create event`` (newId : unit -> string) (command : EventDetail -> Async<unit>) (ctx : HttpContext) = async {
     let event = 
         ctx.request.rawForm 
         |> System.Text.UTF8Encoding.UTF8.GetString 
         |> (fun s -> JsonConvert.DeserializeObject<NewEvent>(s))
     let eventModel = { 
-        Id = ObjectId.GenerateNewId().ToString() 
+        Id = newId()
         Name = event.Name 
         Information = event.Information
         Location = event.Location
@@ -43,14 +42,14 @@ let ``create event`` (command : EventDetail -> Async<unit>) (ctx : HttpContext) 
     return! ACCEPTED "" ctx
 }
 
-let ``create ticket type`` (command : TicketInfo -> Async<unit>) (eventId : string) (ctx : HttpContext) = async {
+let ``create ticket type`` (newId : unit -> string) (command : TicketInfo -> Async<unit>) (eventId : string) (ctx : HttpContext) = async {
     let ticket = 
         ctx.request.rawForm 
         |> System.Text.UTF8Encoding.UTF8.GetString 
         |> (fun s -> JsonConvert.DeserializeObject<NewTicket>(s))
     let ticketModel = {
         EventId = eventId
-        Id = ObjectId.GenerateNewId().ToString()
+        Id = newId()
         Description = ticket.Description
         Quantity = ticket.Quantity
         Price = ticket.Price    

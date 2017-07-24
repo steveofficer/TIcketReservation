@@ -6,6 +6,7 @@ open System.Net
 open System.Data.SqlClient
 open AdminService.Types
 open AdminService.Queries
+open AdminService.Handlers
 
 [<EntryPoint>]
 let main argv = 
@@ -14,6 +15,8 @@ let main argv =
     let mongoClient = MongoDB.Driver.MongoClient(settings.["mongo"].ConnectionString)
     let mongoDb = mongoClient.GetDatabase(System.Configuration.ConfigurationManager.AppSettings.["database"])
     
+    let ``id gen``() = MongoDB.Bson.ObjectId.GenerateNewId().ToString()
+
     let findAllEvents() = AdminService.Queries.``get all events`` mongoDb
     
     let getEventDetails = AdminService.Queries.``get event`` mongoDb
@@ -39,19 +42,19 @@ let main argv =
         serverConfig
         (choose [
             GET >=> choose [
-                path "/admin/events" >=> (Handlers.``get all events`` findAllEvents)
-                pathScan "/admin/events/%s" (Handlers.``get event details`` getEventDetails)
-                pathScan "/admin/events/%s/tickets/%s" (fun (eventId : string, ticketTypeId : string) -> Handlers.``get event ticket details`` getEventTicketDetails eventId ticketTypeId)
+                path "/admin/events" >=> (``get all events`` findAllEvents)
+                pathScan "/admin/events/%s" (``get event details`` getEventDetails)
+                pathScan "/admin/events/%s/tickets/%s" (fun (eventId : string, ticketTypeId : string) -> ``get event ticket details`` getEventTicketDetails eventId ticketTypeId)
             ]
 
             PUT >=> choose [
-                path "/admin/events" >=> Handlers.``create event`` createEvent
-                pathScan "/admin/events/%s/tickets" (Handlers.``create ticket type`` createTicketType)
+                path "/admin/events" >=> ``create event`` ``id gen`` createEvent
+                pathScan "/admin/events/%s/tickets" (``create ticket type`` ``id gen`` createTicketType)
             ]
 
             POST >=> choose [
-                pathScan "/admin/events/%s" (Handlers.``update event`` updateEvent)
-                pathScan "/admin/events/%s/tickets/%s" (fun (event, ticketType) -> Handlers.``update ticket type`` updateTicketType event ticketType)
+                pathScan "/admin/events/%s" (``update event`` updateEvent)
+                pathScan "/admin/events/%s/tickets/%s" (fun (event, ticketType) -> ``update ticket type`` updateTicketType event ticketType)
             ]
             
             NOT_FOUND "The requested path is not valid."

@@ -30,10 +30,17 @@ type LedgerTransactionSerializer() =
             context.Writer.WriteEndArray()
             ()
         | Cancellation c -> 
+            let serializeTicket (t : CancelledTicket) = 
+                context.Writer.WriteStartDocument()
+                context.Writer.WriteName("TicketTypeId")
+                context.Writer.WriteString(t.TicketTypeId)
+                context.Writer.WriteName("TicketId")
+                context.Writer.WriteString(t.TicketId)
+                context.Writer.WriteEndDocument()
             context.Writer.WriteName("_t")
             context.Writer.WriteString("Cancellation")
             context.Writer.WriteStartArray()
-            c.TicketIds |> Array.iter context.Writer.WriteString
+            c.Tickets |> Array.iter serializeTicket
             context.Writer.WriteEndArray()
             ()
         | Allocation a -> 
