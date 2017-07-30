@@ -107,6 +107,16 @@
       <Project>{ff52a4f2-38b8-497d-b1d6-402955a47429}</Project>
       <Private>True</Private>
     </ProjectReference>
+    <ProjectReference Include="..\AvailabilityService\AvailabilityService.fsproj">
+      <Name>AvailabilityService (AvailabilityService\AvailabilityService)</Name>
+      <Project>{cd3a999f-9053-4eef-bde7-689349cac6a5}</Project>
+      <Private>True</Private>
+    </ProjectReference>
+    <ProjectReference Include="..\PricingService\PricingService.fsproj">
+      <Name>PricingService (PricingService\PricingService)</Name>
+      <Project>{c236419e-5055-4541-b6c0-2dd8298487ce}</Project>
+      <Private>True</Private>
+    </ProjectReference>
   </ItemGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

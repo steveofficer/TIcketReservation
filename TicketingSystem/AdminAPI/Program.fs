@@ -10,8 +10,9 @@ open AdminService.Handlers
 
 [<EntryPoint>]
 let main argv = 
-    // Create the connection to MongoDB
     let settings = System.Configuration.ConfigurationManager.ConnectionStrings
+    
+    // Create the connection to MongoDB
     let mongoClient = MongoDB.Driver.MongoClient(settings.["mongo"].ConnectionString)
     let mongoDb = mongoClient.GetDatabase(System.Configuration.ConfigurationManager.AppSettings.["database"])
     
@@ -21,15 +22,35 @@ let main argv =
     
     let getEventDetails = AdminService.Queries.``get event`` mongoDb
 
-    let getEventTicketDetails = AdminService.Queries.``get event ticket details`` mongoDb
+    let getEventTicketDetails ``event id`` ``ticket type id`` = async {
+        use conn = new SqlConnection(settings.["sql"].ConnectionString)
+        do! conn.OpenAsync() |> Async.AwaitTask
+        let! description = AdminService.Queries.``get event ticket details`` mongoDb ``event id`` ``ticket type id``
+        match description with
+        | None -> return None
+        | Some description ->
+            let! quantity = AvailabilityService.Queries.``get ticket type availability`` conn ``event id`` ``ticket type id`` 
+            let! (price, time) = PricingService.Queries.``get ticket price`` mongoDb ``event id`` ``ticket type id`` 
+            match price with
+            | Some price -> return Some { EventId = ``event id``; Id = ``ticket type id``; Description = description; Quantity = quantity; Price = price }
+            | None -> return None
+    }
 
-    let createEvent = AdminService.Commands.``create event``
+    let createEvent = AdminService.Commands.``create event`` mongoDb
 
-    let updateEvent = AdminService.Commands.``update event``
+    let updateEvent = AdminService.Commands.``update event`` mongoDb
 
-    let createTicketType = AdminService.Commands.``create event ticket type``
+    let createTicketType ``ticket type`` = async { 
+        use conn = new SqlConnection(settings.["sql"].ConnectionString)
+        do! conn.OpenAsync() |> Async.AwaitTask
 
-    let updateTicketType = AdminService.Commands.``update event ticket type``
+        do! AdminService.Commands.``create event ticket type`` mongoDb ``ticket type``.EventId ``ticket type``.Id ``ticket type``.Description
+        do! AvailabilityService.Commands.``create event ticket type`` conn ``ticket type``.EventId ``ticket type``.Id ``ticket type``.Quantity
+        do! PricingService.Commands.``create event ticket type`` mongoDb ``ticket type``.EventId ``ticket type``.Id ``ticket type``.Price
+        return ()
+    }
+
+    let updateTicketType = AdminService.Commands.``update event ticket type`` mongoDb
 
     // Start the Suave Server so it start listening for requests
     let port = Sockets.Port.Parse <| argv.[0]

@@ -16,17 +16,14 @@ let ``get event`` (db : IMongoDatabase) (``event id`` : string) = async {
 }
 
 let ``get event ticket details`` (db : IMongoDatabase) (``event id`` : string) (``ticket type id`` : string) = async {
+    // First look up the "master" data
     let coll = db.GetCollection<EventDetail>("Events")
     let! result = coll.Find(fun e -> e.Id = ``event id``).FirstOrDefaultAsync() |> Async.AwaitTask
-    return 
-        [|
-            {
-                EventId = ``event id``
-                Id = ``ticket type id``
-                Description = ""
-                Quantity = 0
-                Price = 7M
-            }
-        |]
-
+    
+    if box result = null 
+    then return None 
+    else 
+        // The Event exists, now find the price and the quantity
+        let ticketType = result.Tickets |> Seq.find (fun t -> t.TicketTypeId = ``ticket type id``)
+        return Some ticketType.Description
 }

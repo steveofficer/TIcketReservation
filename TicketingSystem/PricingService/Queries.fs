@@ -32,3 +32,17 @@ let ``get ticket prices`` (db : IMongoDatabase) (``event id`` : string) (``ticke
             (Some prices, asAt)
         | None -> (None, asAt)
 }
+
+let ``get ticket price`` (db : IMongoDatabase) (``event id`` : string) (``ticket type id`` : string) = async {
+    // Get the event and remember the time the event details was accurate at
+    let! (event, asAt) = ``get event ticket prices`` db ``event id`` 
+    return
+        match event with
+        | Some event ->
+            // Extract the prices for the ticket of interest and return it
+            let ticketType = event.Tickets |> Array.find (fun t -> t.TicketTypeId = ``ticket type id``)
+                
+            // Return the prices as well as the time they were accurate at
+            (Some ticketType.Price, asAt)
+        | None -> (None, asAt)
+}

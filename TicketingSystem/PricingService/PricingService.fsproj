@@ -56,6 +56,7 @@
     <Compile Include="Queries.fs" />
     <Compile Include="Handlers.fs" />
     <Content Include="packages.config" />
+    <Compile Include="Commands.fs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="FSharp.Core">

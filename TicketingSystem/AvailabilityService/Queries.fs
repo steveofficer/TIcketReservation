@@ -27,6 +27,30 @@ let ``get event ticket availability`` (conn : IDbConnection) (``event id`` : str
     }
 }
 
+let ``get ticket type availability`` (conn : IDbConnection) (``event id`` : string) (``ticket type id`` : string) = async {
+    // Create the command
+    use command = conn.CreateCommand()
+    command.CommandText <- """SELECT [RemainingQuantity] FROM [EventTickets] WHERE [EventId] = @eventId AND [TicketTypeId] = @ticketType"""
+    
+    // Use parameterized SQL to provide the eventId filter to avoid a SQL Injection attack
+    command.CreateParameter(ParameterName = "@eventId", Value = ``event id``)
+    |> command.Parameters.Add
+    |> ignore
+
+    // Use parameterized SQL to provide the ticketTypeId filter to avoid a SQL Injection attack
+    command.CreateParameter(ParameterName = "@ticketType", Value = ``ticket type id``)
+    |> command.Parameters.Add
+    |> ignore
+
+    // Run the query asynchronously and return the queried data
+    return! async { 
+        use reader = command.ExecuteReader() 
+        if reader.Read()
+        then return reader.GetInt32(0)
+        else return 0
+    }
+}
+
 /// Find any existing allocated tickets for the requested order id
 let ``find existing allocations`` (conn : IDbConnection) (``order id`` : string) = async {
     // Create the command

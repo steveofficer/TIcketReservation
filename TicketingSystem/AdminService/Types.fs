@@ -17,7 +17,7 @@ type EventDetail = {
     Tickets : Ticket[]
 } and Ticket = {
     TicketTypeId : string
-    Description : string
+    mutable Description : string
 }
 
 type NewEvent = {

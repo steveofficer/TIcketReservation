@@ -19,9 +19,11 @@ let ``get event details`` (query : string -> Async<EventDetail option>) (eventId
     | None -> return! NOT_FOUND "Event not found" ctx
 }
 
-let ``get event ticket details`` (query : string -> string -> Async<TicketInfo[]>) (eventId : string) (ticketId : string) (ctx : HttpContext) = async {
+let ``get event ticket details`` (query : string -> string -> Async<TicketInfo option>) (eventId : string) (ticketId : string) (ctx : HttpContext) = async {
     let! ticket = query eventId ticketId
-    return! ticket |> JsonConvert.SerializeObject |> OK <| ctx
+    match ticket with
+    | Some t -> return! t |> JsonConvert.SerializeObject |> OK <| ctx
+    | None -> return! NOT_FOUND "Ticket type not found" ctx
 }
 
 let ``create event`` (newId : unit -> string) (command : EventDetail -> Async<unit>) (ctx : HttpContext) = async {
@@ -47,6 +49,7 @@ let ``create ticket type`` (newId : unit -> string) (command : TicketInfo -> Asy
         ctx.request.rawForm 
         |> System.Text.UTF8Encoding.UTF8.GetString 
         |> (fun s -> JsonConvert.DeserializeObject<NewTicket>(s))
+    
     let ticketModel = {
         EventId = eventId
         Id = newId()
