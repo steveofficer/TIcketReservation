@@ -1,5 +1,7 @@
-﻿namespace AdminService.Types
+﻿module AdminService.Types
+open MongoDB.Bson.Serialization.Attributes
 
+[<BsonIgnoreExtraElements>]
 type EventSummary = {
     Id : string
     Name : string
@@ -17,7 +19,7 @@ type EventDetail = {
     Tickets : Ticket[]
 } and Ticket = {
     TicketTypeId : string
-    mutable Description : string
+    Description : string
 }
 
 type NewEvent = {
@@ -41,4 +43,3 @@ type NewTicket = {
     Price : decimal
     Quantity : int32
 }
-

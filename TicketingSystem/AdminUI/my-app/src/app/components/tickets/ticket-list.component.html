@@ -1,4 +1,4 @@
-<div *ngIf="ticketsLoaded">
+<div>
 	<table class="table table-condensed table-striped">
 		<thead>
 			<tr>
@@ -17,6 +17,20 @@
 	</table>
 </div>
 
-<div *ngIf="!ticketsLoaded">
-	<h3>Loading event tickets...</h3>
+<div>
+	<form class="form-inline" (ngSubmit)="addTicket()">
+		<div class="form-group">
+	    	<label for="description">Description</label>
+		    <input type="text" class="form-control" id="description" placeholder="Description" name="description" [(ngModel)]="newTicket.Description">
+	  	</div>
+	  	<div class="form-group">
+		    <label for="Price">Price</label>
+		    <input type="number" class="form-control" id="price" name="price" [(ngModel)]="newTicket.Price">
+	  	</div>
+	  	<div class="form-group">
+		    <label for="Price">Quantity</label>
+		    <input type="number" class="form-control" id="quantity" name="quantity" [(ngModel)]="newTicket.Quantity">
+	  	</div>
+  		<button type="submit" class="btn btn-default">Add</button>
+	</form>
 </div>

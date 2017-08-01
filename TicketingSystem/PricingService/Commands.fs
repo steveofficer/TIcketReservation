@@ -7,6 +7,12 @@ open MongoDB.Bson
 
 let ``collection name`` = "Pricing"
 
+let ``create event`` (db : IMongoDatabase) (``event id`` : string) = async {
+    let collection = db.GetCollection<EventPricing>(``collection name``)
+    do! collection.InsertOneAsync({ Id = ``event id``; Tickets = [||] }) |> Async.AwaitTask
+    return ()
+}
+
 let ``create event ticket type`` (db : IMongoDatabase) (``event id`` : string) (``ticket type id`` : string) (price : decimal) = async {
     // Get access to the collection
     let collection = db.GetCollection<EventPricing>(``collection name``)

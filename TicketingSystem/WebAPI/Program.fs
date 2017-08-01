@@ -26,7 +26,7 @@ let main argv =
     // Create the handler that manages the request to get the list of events
     let ``get events`` = 
         let query() = AdminService.Queries.``get all events`` mongoDb
-        AdminService.Handlers.``get all events`` query
+        AdminService.Web.Handlers.``get all events`` query
 
     // Create the handler that manages the request to get the list of tickets purchased by a user
     let ``get user tickets`` =  

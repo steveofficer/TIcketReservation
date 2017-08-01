@@ -6,7 +6,8 @@ open System.Net
 open System.Data.SqlClient
 open AdminService.Types
 open AdminService.Queries
-open AdminService.Handlers
+open AdminService.Web.Handlers
+open AdminService.Web.Types
 
 [<EntryPoint>]
 let main argv = 
@@ -16,27 +17,57 @@ let main argv =
     let mongoClient = MongoDB.Driver.MongoClient(settings.["mongo"].ConnectionString)
     let mongoDb = mongoClient.GetDatabase(System.Configuration.ConfigurationManager.AppSettings.["database"])
     
+    let connectionFactory() = async {
+        let conn = new SqlConnection(settings.["sql"].ConnectionString)
+        do! conn.OpenAsync() |> Async.AwaitTask
+        return conn :> System.Data.IDbConnection
+    }
+
     let ``id gen``() = MongoDB.Bson.ObjectId.GenerateNewId().ToString()
 
     let findAllEvents() = AdminService.Queries.``get all events`` mongoDb
     
-    let getEventDetails = AdminService.Queries.``get event`` mongoDb
-
-    let getEventTicketDetails ``event id`` ``ticket type id`` = async {
-        use conn = new SqlConnection(settings.["sql"].ConnectionString)
-        do! conn.OpenAsync() |> Async.AwaitTask
-        let! description = AdminService.Queries.``get event ticket details`` mongoDb ``event id`` ``ticket type id``
-        match description with
+    let getEventDetails ``event id`` = async {
+        let! event = AdminService.Queries.``get event`` mongoDb ``event id``
+        match event with
         | None -> return None
-        | Some description ->
-            let! quantity = AvailabilityService.Queries.``get ticket type availability`` conn ``event id`` ``ticket type id`` 
-            let! (price, time) = PricingService.Queries.``get ticket price`` mongoDb ``event id`` ``ticket type id`` 
-            match price with
-            | Some price -> return Some { EventId = ``event id``; Id = ``ticket type id``; Description = description; Quantity = quantity; Price = price }
-            | None -> return None
+        | Some event ->
+            return! async {
+                use! conn = connectionFactory()
+                let! prices = PricingService.Queries.``get event ticket prices`` mongoDb ``event id``
+                let! availability = AvailabilityService.Queries.``get event ticket availability`` conn ``event id``
+                match (prices, availability) with
+                | ((Some prices, _), availability) -> 
+                    return Some 
+                        {
+                            Id = event.Id
+                            Name = event.Name
+                            Start = event.Start
+                            End = event.End
+                            Location = event.Location
+                            Information = event.Information
+                            Tickets = event.Tickets 
+                                        |> Array.zip3 prices.Tickets availability 
+                                        |> Array.map (fun (price,qty,description) -> { TicketTypeId = description.TicketTypeId; Description = description.Description; Quantity = qty.RemainingQuantity; Price = price.Price })
+                        }
+                | _ -> return Some 
+                        {
+                            Id = event.Id
+                            Name = event.Name
+                            Start = event.Start
+                            End = event.End
+                            Location = event.Location
+                            Information = event.Information
+                            Tickets = [||]
+                        }
+            }
     }
 
-    let createEvent = AdminService.Commands.``create event`` mongoDb
+    let createEvent (detail) = async {
+        do! AdminService.Commands.``create event`` mongoDb detail
+        do! PricingService.Commands.``create event`` mongoDb detail.Id
+        return ()
+    }
 
     let updateEvent = AdminService.Commands.``update event`` mongoDb
 
@@ -52,6 +83,11 @@ let main argv =
 
     let updateTicketType = AdminService.Commands.``update event ticket type`` mongoDb
 
+    let setCORSHeaders =
+        Suave.Writers.setHeader  "Access-Control-Allow-Origin" "*"
+        >=> Suave.Writers.setHeader "Access-Control-Allow-Headers" "content-type"
+        >=> Suave.Writers.addHeader "Access-Control-Allow-Methods" "GET, POST, PUT"
+
     // Start the Suave Server so it start listening for requests
     let port = Sockets.Port.Parse <| argv.[0]
  
@@ -62,10 +98,14 @@ let main argv =
     startWebServer 
         serverConfig
         (choose [
+            
+            OPTIONS >=>
+                fun context ->
+                    context |> (Suave.Successful.OK """{ "Response": "CORS approved" }""" )
+            
             GET >=> choose [
                 path "/admin/events" >=> (``get all events`` findAllEvents)
                 pathScan "/admin/events/%s" (``get event details`` getEventDetails)
-                pathScan "/admin/events/%s/tickets/%s" (fun (eventId : string, ticketTypeId : string) -> ``get event ticket details`` getEventTicketDetails eventId ticketTypeId)
             ]
 
             PUT >=> choose [
@@ -79,5 +119,5 @@ let main argv =
             ]
             
             NOT_FOUND "The requested path is not valid."
-        ] >=> Writers.setMimeType "application/json") 
+        ] >=> Writers.setMimeType "application/json" >=> setCORSHeaders) 
     0

@@ -6,7 +6,7 @@ open System.Data
 open System.Collections.Generic
 
 let ``create event ticket type`` (conn : IDbConnection) (``event id`` : string) (``ticket type id`` : string) (quantity : int32) = async {
-    let insertValues = sprintf "(%s, %s, %d, %d)" ``event id`` ``ticket type id`` quantity quantity
+    let insertValues = sprintf "('%s', '%s', %d, %d)" ``event id`` ``ticket type id`` quantity quantity
     
     use command = conn.CreateCommand()
     command.CommandText <- 

@@ -26,8 +26,8 @@ let ``update event ticket type`` (db : IMongoDatabase) (ticketType : TicketInfo)
     let coll = db.GetCollection<EventDetail>("Events")
     let! event = coll.Find(fun e -> e.Id = ticketType.EventId).FirstOrDefaultAsync() |> Async.AwaitTask
     
-    let currentTicketType = event.Tickets |> Seq.find (fun t -> t.TicketTypeId = ticketType.Id)
-    currentTicketType.Description <- ticketType.Description
+    let i = event.Tickets |> Seq.findIndex (fun t -> t.TicketTypeId = ticketType.Id)
+    event.Tickets.[i] <- { TicketTypeId = ticketType.Id; Description = ticketType.Description }
     
     return! ``update event`` db event
 }

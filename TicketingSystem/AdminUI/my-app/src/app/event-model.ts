@@ -11,8 +11,8 @@ export class NewEvent {
 export class NewTicket {
 	constructor(
 		Description: string,
-	    Price: Date,
-	    Quantity: Date
+	    Price: number,
+	    Quantity: number
     ){}
 }
 
@@ -36,5 +36,10 @@ export interface IEventDetail {
     Start: Date,
     End: Date,
     Location: string,
-    Information: string
+    Information: string,
+    Tickets : ITicketDetail[]
+}
+
+export interface IResult {
+	Id : string
 }

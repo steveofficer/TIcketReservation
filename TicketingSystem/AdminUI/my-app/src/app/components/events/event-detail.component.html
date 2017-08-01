@@ -9,7 +9,7 @@
 
 <div class="tab-content">
 	<div role="tabpanel" class="tab-pane" [class.active]="activeTab == 'event'" id="event">
-       <form class="form-horizontal">
+       <form class="form-horizontal" (ngSubmit)="onSubmit()">
 		  <div class="form-group">
 		    <label for="name" class="col-sm-2 control-label">Event Name</label>
 		    <div class="col-sm-10">
@@ -45,6 +45,6 @@
 	</div>
 
 	<div role="tabpanel" class="tab-pane" [class.active]="activeTab == 'tickets'" id="tickets">
-		<ticket-list *ngIf="activeTab == 'tickets'" [eventId]="eventId"></ticket-list>
+		<ticket-list *ngIf="activeTab == 'tickets'" [eventId]="eventId" [tickets]="event.Tickets"></ticket-list>
 	</div>
 </div>

@@ -1,6 +1,6 @@
 import { Component, OnInit, Input } from '@angular/core';
 import { CommunicationService } from '../../communication/communication.service';
-import { ITicket } from '../../event-model';
+import { ITicketDetail, NewTicket } from '../../event-model';
 
 @Component({
   selector: 'ticket-list',
@@ -10,17 +10,17 @@ export class TicketListComponent implements OnInit {
   @Input()
   eventId: string;
 
+  @Input()
+  tickets: ITicketDetail[];
+
+  newTicket: NewTicket = new NewTicket('', 0, 0);
+
   constructor(private commService: CommunicationService) {}
 
-  ticketsLoaded = false;
-  tickets : ITicket[] = [];
-
   ngOnInit(): void {
-	console.log(this.eventId);
-	this.commService.getTickets(this.eventId)
-	.subscribe(t => {
-		this.tickets = t;
-		this.ticketsLoaded = true;
-	})
+  }
+
+  addTicket() {
+    this.commService.addTicket(this.eventId, this.newTicket).subscribe(id => console.log(id), err => console.log(err));
   }
 }

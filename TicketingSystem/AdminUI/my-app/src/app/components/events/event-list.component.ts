@@ -18,6 +18,7 @@ export class EventListComponent implements OnInit {
   }
 
   reload() {
+    this.error = null;
     this.commService.getEvents()
     .subscribe(
       e => {

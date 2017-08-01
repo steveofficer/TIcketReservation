@@ -31,3 +31,4 @@ module Db =
         TicketTypeId : string
         Price : decimal
     }
+    

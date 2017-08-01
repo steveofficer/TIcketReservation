@@ -1,4 +1,4 @@
-﻿module AdminService.Handlers
+﻿module AdminService.Web.Handlers
 
 open Suave
 open Suave.Successful
@@ -12,18 +12,11 @@ let ``get all events`` (query : unit -> Async<EventSummary[]>) (ctx : HttpContex
     return! events |> JsonConvert.SerializeObject |> OK <| ctx
 }
     
-let ``get event details`` (query : string -> Async<EventDetail option>) (eventId : string) (ctx : HttpContext) = async {
+let ``get event details`` (query : string -> Async<AdminService.Web.Types.EventDetail option>) (eventId : string) (ctx : HttpContext) = async {
     let! event = query eventId
     match event with
     | Some e -> return! e |> JsonConvert.SerializeObject |> OK <| ctx
     | None -> return! NOT_FOUND "Event not found" ctx
-}
-
-let ``get event ticket details`` (query : string -> string -> Async<TicketInfo option>) (eventId : string) (ticketId : string) (ctx : HttpContext) = async {
-    let! ticket = query eventId ticketId
-    match ticket with
-    | Some t -> return! t |> JsonConvert.SerializeObject |> OK <| ctx
-    | None -> return! NOT_FOUND "Ticket type not found" ctx
 }
 
 let ``create event`` (newId : unit -> string) (command : EventDetail -> Async<unit>) (ctx : HttpContext) = async {
@@ -41,7 +34,7 @@ let ``create event`` (newId : unit -> string) (command : EventDetail -> Async<un
         Tickets = [||]
     }
     do! command eventModel
-    return! ACCEPTED "" ctx
+    return! ACCEPTED (sprintf """{ "Id" : "%s" }""" eventModel.Id) ctx
 }
 
 let ``create ticket type`` (newId : unit -> string) (command : TicketInfo -> Async<unit>) (eventId : string) (ctx : HttpContext) = async {
@@ -59,7 +52,7 @@ let ``create ticket type`` (newId : unit -> string) (command : TicketInfo -> Asy
     }
 
     do! command ticketModel
-    return! ACCEPTED "" ctx
+    return! ACCEPTED (sprintf """{ "Id" : "%s" }""" ticketModel.Id) ctx
 }
 
 let ``update event`` (command : EventDetail -> Async<unit>) (eventId : string) (ctx : HttpContext) = async {
