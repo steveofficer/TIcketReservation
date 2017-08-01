@@ -73,7 +73,7 @@ let ``reserve tickets`` (conn : IDbConnection) (tickets : IDictionary<string, ui
 
 /// Writes the provided ticket allocation records to the database as part of a wider transaction scope
 let ``record allocations`` (transaction : IDbTransaction) (allocations : TicketsAllocatedEvent) = async {
-    let insertValues = allocations.Tickets |> Array.map(fun t -> sprintf "(%s, %s, %s, %G)" t.TicketTypeId t.TicketId allocations.OrderId t.Price)
+    let insertValues = allocations.Tickets |> Array.map(fun t -> sprintf "('%s', '%s', '%s', %G)" t.TicketTypeId t.TicketId allocations.OrderId t.Price)
     
     use command = transaction.Connection.CreateCommand()
     command.CommandText <- 

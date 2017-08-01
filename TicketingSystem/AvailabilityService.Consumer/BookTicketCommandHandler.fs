@@ -15,22 +15,21 @@ type BookTicketsCommandHandler
     recordAllocation : IDbTransaction -> TicketsAllocatedEvent -> Async<unit>) =
     inherit RabbitMQ.Subscriber.PublishingMessageHandler<BookTicketsCommand>(publish)
     
-    let ``handle new allocation`` (message : BookTicketsCommand) (conn) = async {
+    member private this.``handle new allocation`` (message : BookTicketsCommand) (conn) = async {
         // Pre generate the tickets so we don't hold a lock for too long, only lock when we need to.
         let allocatedTickets = 
             message.Tickets 
             |> Array.collect (fun t -> [| for _ in 0u .. t.Quantity do yield { AllocatedTicket.TicketTypeId = t.TicketTypeId; TicketId = ObjectId.GenerateNewId().ToString(); Price = t.PriceEach } |])
             
-        let allocatedEvent = 
-            {
-                EventId = message.EventId
-                OrderId = message.OrderId
-                PaymentReference = message.PaymentReference
-                RequestedAt = System.DateTime.UtcNow
-                UserId = message.UserId
-                TotalPrice = allocatedTickets |> Array.map (fun t -> t.Price) |> Array.sum
-                Tickets = allocatedTickets
-            }
+        let allocatedEvent = {
+            EventId = message.EventId
+            OrderId = message.OrderId
+            PaymentReference = message.PaymentReference
+            RequestedAt = System.DateTime.UtcNow
+            UserId = message.UserId
+            TotalPrice = allocatedTickets |> Array.map (fun t -> t.Price) |> Array.sum
+            Tickets = allocatedTickets
+        }
 
         // Now query and lock the records that we are interested in
         let! reservation_result = 
@@ -49,8 +48,8 @@ type BookTicketsCommandHandler
                     Tickets = message.Tickets |> Array.map (fun t -> { TicketTypeId = t.TicketTypeId; Quantity = t.Quantity })
                     UserId = message.UserId
                     Reason = "The tickets were not available"
-                } :> obj
-            do! publish failedMessage
+                }
+            do! this.Publish failedMessage
             
         | Some transaction ->
             // We have available tickets.
@@ -61,7 +60,7 @@ type BookTicketsCommandHandler
             transaction.Commit()
 
             // If this fails then the message will be retried. Because the allocation has already committed the publish will be retried.
-            do! publish allocatedEvent
+            do! this.Publish allocatedEvent
             
         return ()
     }
@@ -74,19 +73,18 @@ type BookTicketsCommandHandler
         let! existingAllocation = findExistingAllocation conn message.OrderId
         
         match existingAllocation with
-        | [||] -> do! ``handle new allocation`` message conn
+        | [||] -> do! this.``handle new allocation`` message conn
         | allocatedTickets ->
             // We have previously allocated these tickets. Re-publish the event as there might have been a previous failure that prevented this from happening.
-            let allocatedEvent = 
-                {
-                    EventId = message.EventId
-                    OrderId = message.OrderId
-                    PaymentReference = message.PaymentReference
-                    RequestedAt = System.DateTime.UtcNow
-                    UserId = message.UserId
-                    TotalPrice = allocatedTickets |> Array.map (fun e -> e.Price) |> Array.sum
-                    Tickets = allocatedTickets |> Array.map (fun t -> { TicketTypeId = t.TicketTypeId; TicketId = t.TicketId; Price = t.Price})
-                } :> obj
+            let allocatedEvent = {
+                EventId = message.EventId
+                OrderId = message.OrderId
+                PaymentReference = message.PaymentReference
+                RequestedAt = System.DateTime.UtcNow
+                UserId = message.UserId
+                TotalPrice = allocatedTickets |> Array.map (fun e -> e.Price) |> Array.sum
+                Tickets = allocatedTickets |> Array.map (fun t -> { TicketTypeId = t.TicketTypeId; TicketId = t.TicketId; Price = t.Price})
+            }
             do! this.Publish allocatedEvent
     }
 

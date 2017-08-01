@@ -16,19 +16,29 @@ type CancelTicketsCommandHandler
     inherit RabbitMQ.Subscriber.PublishingMessageHandler<CancelTicketsCommand>(publish)
     
     override this.HandleMessage (messageId) (sentAt) (message : CancelTicketsCommand) = async {
+        // Create the cancellation event that we are going to publish
+        let cancellation = {
+            EventId = message.EventId
+            OrderId = message.OrderId
+            CancellationId = message.CancellationId
+            RequestedAt = sentAt
+            Tickets = message.Tickets |> Array.map (fun t -> { TicketTypeId = t.TicketTypeId; TicketId = t.TicketId })
+            TotalPrice = message.TotalPrice
+            UserId = message.UserId
+        }
+
         use! conn = factory()
         
         // Check to see if the cancellation has already been handled
-        let! alreadyHandeled = cancellationExists conn message.CancellationId
+        let! alreadyHandled = cancellationExists conn message.CancellationId
         
-        if alreadyHandeled 
+        if not alreadyHandled 
         then
-            // Just re-publish the event
-            do! this.Publish 12
-        else
-            // Record the cancellation
-            cancelTickets
-            // Publish the event
-            do! this.Publish conn
+            // It hasn't been handled yet, so record the cancellation
+            do! cancelTickets conn cancellation
+            
+            
+        // Publish the event
+        do! this.Publish cancellation
         return () 
     }
