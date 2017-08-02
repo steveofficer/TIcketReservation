@@ -7,21 +7,24 @@ open System.Data.SqlClient
 
 [<EntryPoint>]
 let main argv = 
+    let connectionSettings = System.Configuration.ConfigurationManager.ConnectionStrings
+    let appSettings = System.Configuration.ConfigurationManager.AppSettings
     // Create the connection to MongoDB
-    let settings = System.Configuration.ConfigurationManager.ConnectionStrings
-    let mongoClient = MongoDB.Driver.MongoClient(settings.["mongo"].ConnectionString)
-    let mongoDb = mongoClient.GetDatabase(System.Configuration.ConfigurationManager.AppSettings.["database"])
+    let mongoClient = MongoDB.Driver.MongoClient(connectionSettings.["mongo"].ConnectionString)
+    let mongoDb = mongoClient.GetDatabase(appSettings.["database"])
     
     // Create the connection to RabbitMQ
-    let rabbitFactory = RabbitMQ.Client.ConnectionFactory(uri = System.Uri(settings.["rabbit"].ConnectionString))
+    let rabbitFactory = RabbitMQ.Client.ConnectionFactory(uri = System.Uri(connectionSettings.["rabbit"].ConnectionString))
     let connection = rabbitFactory.CreateConnection()
     let publisher = RabbitMQ.Publisher.PublishChannel("TicketServiceAPI", connection)
     publisher.registerEvents([| "AvailabilityService.Contract"; "PricingService.Contract" |])
 
+    let secureKey = appSettings.["secure_key"]
+   
     // Create the handler that manages the request to create a quote for a ticket request
     let ``generate a quote`` = 
         let query = PricingService.Queries.``get ticket prices`` mongoDb
-        PricingService.Handlers.``create quote`` (fun _ _ -> "") query publisher.publish
+        PricingService.Handlers.``create quote`` (Security.``create signature`` secureKey) query publisher.publish
     
     // Create the handler that manages the request to get the list of events
     let ``get events`` = 
@@ -46,13 +49,13 @@ let main argv =
     // Create the handler that manages the request to get the list of ticket availability for an event
     let ``get ticket availability for event`` = 
         let query event = 
-            use connection = new SqlConnection(settings.["sql"].ConnectionString)
+            use connection = new SqlConnection(connectionSettings.["sql"].ConnectionString)
             AvailabilityService.Queries.``get event ticket availability`` connection event
 
         AvailabilityService.Handlers.``get event ticket availability`` query
     
     // Create the handler that manages the request to confirm an order
-    let ``order the tickets`` = AvailabilityService.Handlers.``confirm order`` (fun _ _ -> true) publisher.publish
+    let ``order the tickets`` = AvailabilityService.Handlers.``confirm order`` (Security.``validate signature`` secureKey) publisher.publish
 
     // Start the Suave Server so it start listening for requests
     let port = Sockets.Port.Parse <| argv.[0]

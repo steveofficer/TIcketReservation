@@ -7,7 +7,7 @@ module Requests =
         AntiForgeryToken : string
     } and TicketQuantity = {
         TicketTypeId : string
-        Quantity : uint32
+        Quantity : int32
     }
 
 module Responses = 
@@ -18,7 +18,7 @@ module Responses =
         AntiForgeryToken : string
     } and TicketPrice = {
         TicketTypeId : string
-        Quantity : uint32
+        Quantity : int32
         PricePer : decimal
         TotalPrice : decimal
     }

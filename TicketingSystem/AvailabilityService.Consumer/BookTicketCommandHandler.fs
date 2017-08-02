@@ -11,7 +11,7 @@ type BookTicketsCommandHandler
     publish, 
     factory : unit -> Async<IDbConnection>,
     findExistingAllocation : IDbConnection -> string -> Async<AllocationInfo[]>, 
-    reserveTickets : IDbConnection -> IDictionary<string, uint32> -> Async<IDbTransaction option>, 
+    reserveTickets : IDbConnection -> IDictionary<string, int32> -> Async<IDbTransaction option>, 
     recordAllocation : IDbTransaction -> TicketsAllocatedEvent -> Async<unit>) =
     inherit RabbitMQ.Subscriber.PublishingMessageHandler<BookTicketsCommand>(publish)
     
@@ -19,7 +19,7 @@ type BookTicketsCommandHandler
         // Pre generate the tickets so we don't hold a lock for too long, only lock when we need to.
         let allocatedTickets = 
             message.Tickets 
-            |> Array.collect (fun t -> [| for _ in 0u .. t.Quantity do yield { AllocatedTicket.TicketTypeId = t.TicketTypeId; TicketId = ObjectId.GenerateNewId().ToString(); Price = t.PriceEach } |])
+            |> Array.collect (fun t -> [| for _ in 0 .. t.Quantity do yield { AllocatedTicket.TicketTypeId = t.TicketTypeId; TicketId = ObjectId.GenerateNewId().ToString(); Price = t.PriceEach } |])
             
         let allocatedEvent = {
             EventId = message.EventId

@@ -36,6 +36,6 @@ type TicketsAllocationFailedEvent = {
     Reason : string
 } and TicketQuantity = {
     TicketTypeId : string
-    Quantity : uint32
+    Quantity : int32
 }
 

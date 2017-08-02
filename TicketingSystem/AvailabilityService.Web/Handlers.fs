@@ -12,10 +12,11 @@ type ConfirmOrderRequest = {
     UserId : string
     PaymentReference : string
     OrderId : string
+    AntiForgeryToken : string
     Tickets : TicketInfo[]
 } and TicketInfo = {
     TicketTypeId : string
-    Quantity : uint32
+    Quantity : int32
     PricePer : decimal
 }
 
@@ -24,7 +25,7 @@ type AvailabilityResponse = {
     TicketAvailability : TicketQuantity[]
 } and TicketQuantity = {
     TicketTypeId : string
-    Quantity : uint32
+    Quantity : int32
 }
 
 let ``get event ticket availability`` (query : string -> Async<EventTicketInfo[]>) (``event id`` : string) (ctx : HttpContext) = async {
@@ -39,7 +40,7 @@ let ``confirm order`` verify_signature (send : BookTicketsCommand -> Async<unit>
         |> System.Text.UTF8Encoding.UTF8.GetString 
         |> (fun s -> JsonConvert.DeserializeObject<ConfirmOrderRequest>(s))
     
-    if not(verify_signature request.OrderId request.Tickets)
+    if not(verify_signature request.AntiForgeryToken request.OrderId request.Tickets)
     then 
         return! BAD_REQUEST "The quote is not valid. Antiforgery detection failed" ctx
     else

@@ -25,7 +25,7 @@ let ``record cancellation`` (conn : IDbConnection) (cancellation : TicketsCancel
 /// Write the provided tickets to the database
 /// If not all of the provided tickets can be reserved, then don't reserve any of them and return None.
 /// If all of the provided tickets can be reserved, then the active transaction is returned so any further updates can occur within the same transaction scope
-let ``reserve tickets`` (conn : IDbConnection) (tickets : IDictionary<string, uint32>) = async {
+let ``reserve tickets`` (conn : IDbConnection) (tickets : IDictionary<string, int32>) = async {
     // We want to lock the records that we read so that we know the available quantity is accurate
     let transaction = conn.BeginTransaction(System.Data.IsolationLevel.RepeatableRead)
     
@@ -43,7 +43,7 @@ let ``reserve tickets`` (conn : IDbConnection) (tickets : IDictionary<string, ui
         use reader = command.ExecuteReader()
         return [|
             while reader.Read() do
-                yield (reader.GetString(0), reader.GetInt32(1) |> uint32)
+                yield (reader.GetString(0), reader.GetInt32(1))
         |] 
         |> dict
     }
@@ -54,7 +54,7 @@ let ``reserve tickets`` (conn : IDbConnection) (tickets : IDictionary<string, ui
         return None
     elif tickets |> Seq.forall (fun t -> availableTickets.[t.Key] >= t.Value) then
         // All of the requested ticket types have remaining quantities that are >= the requested quantities
-        let toCommand (t : KeyValuePair<string, uint32>) = 
+        let toCommand (t : KeyValuePair<string, int32>) = 
             let newRemainingQuantity = availableTickets.[t.Key] - t.Value
             sprintf """UPDATE [EventTickets] SET RemainingQuantity = %d WHERE TicketTypeId = '%s';""" newRemainingQuantity t.Key
         

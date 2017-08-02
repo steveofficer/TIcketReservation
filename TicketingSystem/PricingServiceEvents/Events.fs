@@ -9,7 +9,7 @@ type TicketsQuotedEvent = {
     UserId : string
 } and QuotedTicket = {
     TicketTypeId : string
-    Quantity : uint32
+    Quantity : int32
     PriceEach : decimal
     TotalPrice : decimal
 }

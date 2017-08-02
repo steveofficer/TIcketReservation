@@ -23,7 +23,7 @@ type QuoteDetails = {
     TotalPrice : decimal
 } and TicketInfo = {
     TicketTypeId : string
-    Quantity : uint32
+    Quantity : int32
     PriceEach : decimal
 }
 

@@ -38,10 +38,11 @@ let ``create quote`` create_signature query (publish : TicketsQuotedEvent -> Asy
             )
             |> (fun pricedTickets -> 
                 let orderId =  ObjectId.GenerateNewId().ToString()
+                let totalPrice = pricedTickets |> Array.sumBy (fun t -> t.TotalPrice)
                 { 
                     OrderId = orderId
                     TicketPrices = pricedTickets
-                    TotalPrice = pricedTickets |> Array.sumBy (fun t -> t.TotalPrice)
+                    TotalPrice = totalPrice
                     AntiForgeryToken = create_signature orderId pricedTickets
                 }
             )
