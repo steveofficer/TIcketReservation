@@ -4,7 +4,6 @@ module Requests =
     type PriceTicketsRequest = {
         UserId : string
         Tickets : TicketQuantity[]
-        AntiForgeryToken : string
     } and TicketQuantity = {
         TicketTypeId : string
         Quantity : int32
