@@ -56,7 +56,7 @@ type PublishChannel(applicationName : string, connection : IConnection) =
         let properties = _channel.CreateBasicProperties()
         properties.Headers <- [| 
             ("MessageId", System.Guid.NewGuid().ToString() :> obj);
-            ("SentAt", System.DateTime.UtcNow.ToString() :> obj); 
+            ("SentAt", System.DateTime.UtcNow.ToString("O") :> obj); 
             ("SentFrom", System.Environment.MachineName :> obj); 
             ("Source", applicationName :> obj);
             ("EnclosedType", message.GetType().FullName :> obj)

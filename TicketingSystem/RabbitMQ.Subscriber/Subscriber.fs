@@ -42,11 +42,15 @@ type Service(connection : RabbitMQ.Client.IConnection, queue_name) =
         handlers.Add(exchange, handler)
 
     member this.Start() = 
+        let toString (data : obj) = 
+            data :?> byte[]
+            |> System.Text.UTF8Encoding.UTF8.GetString
+
         let eventingConsumer = EventingBasicConsumer(subscription_channel)
         eventingConsumer.Received |> Observable.add(fun msg -> 
-            let messageType = msg.BasicProperties.Headers.["EnclosedType"].ToString()
-            let messageSentAt = msg.BasicProperties.Headers.["SentAt"].ToString() |> DateTime.Parse
-            let messageId = msg.BasicProperties.Headers.["MessageId"].ToString() |> Guid.Parse
+            let messageType = msg.BasicProperties.Headers.["EnclosedType"] |> toString
+            let messageSentAt = msg.BasicProperties.Headers.["SentAt"] |> toString |> DateTime.Parse
+            let messageId = msg.BasicProperties.Headers.["MessageId"] |> toString |> Guid.Parse
 
             // deliver the message to its corresponding handler
             match handlers.TryGetValue(messageType) with

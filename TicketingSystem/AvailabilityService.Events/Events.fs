@@ -11,6 +11,7 @@ type TicketsAllocatedEvent = {
 } and AllocatedTicket = {
     TicketTypeId : string
     TicketId : string
+    AllocatedAt : System.DateTime
     Price : decimal
 }
 

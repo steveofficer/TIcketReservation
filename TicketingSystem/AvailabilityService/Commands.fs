@@ -4,6 +4,24 @@ open AvailabilityService.Types
 open AvailabilityService.Contract.Events
 open System.Data
 open System.Collections.Generic
+open Dapper
+
+type TicketFilter = {
+    TicketIds : string[]
+}
+
+type AvailableTicket = {
+    TicketTypeId : string
+    RemainingQuantity : int32
+}
+
+type AllocatedTicket = { 
+    TicketTypeId : string
+    TicketId : string
+    OrderId : string
+    AllocatedAt : System.DateTime
+    Price : decimal
+}
 
 let ``create event ticket type`` (conn : IDbConnection) (``event id`` : string) (``ticket type id`` : string) (quantity : int32) = async {
     let insertValues = sprintf "('%s', '%s', %d, %d)" ``event id`` ``ticket type id`` quantity quantity
@@ -31,40 +49,25 @@ let ``reserve tickets`` (conn : IDbConnection) (tickets : IDictionary<string, in
     
     // First see how many remaining tickets there are for each of the ticket types we are trying to make
     // reservations for.
-    use command = conn.CreateCommand()
-    command.CommandText <- """SELECT [TicketTypeId], [RemainingQuantity] FROM [EventTickets] WHERE [RemainingQuantity] <> 0 AND [TicketTypeId] IN @ticketIds"""
-    
-    // Use parameterized SQL to provide the orderId filter to avoid a SQL Injection attack
-    command.CreateParameter(ParameterName = "@tickets", Value = tickets.Keys)
-    |> command.Parameters.Add
-    |> ignore
-        
     let! availableTickets = async {
-        use reader = command.ExecuteReader()
-        return [|
-            while reader.Read() do
-                yield (reader.GetString(0), reader.GetInt32(1))
-        |] 
-        |> dict
+        let! result = conn.QueryAsync<AvailableTicket>("""SELECT [TicketTypeId], [RemainingQuantity] FROM [EventTickets] WHERE [RemainingQuantity] <> 0 AND [TicketTypeId] IN @TicketIds""", {TicketIds = (tickets.Keys |> Array.ofSeq) }, transaction) |> Async.AwaitTask
+        return  result |> Seq.map (fun t -> (t.TicketTypeId, t.RemainingQuantity)) |> dict
     }
-        
+
     if availableTickets.Count <> tickets.Count then 
         // Not all of the requested ticket types are available, don't book anything and don't return anything
         transaction.Dispose()
         return None
     elif tickets |> Seq.forall (fun t -> availableTickets.[t.Key] >= t.Value) then
         // All of the requested ticket types have remaining quantities that are >= the requested quantities
-        let toCommand (t : KeyValuePair<string, int32>) = 
-            let newRemainingQuantity = availableTickets.[t.Key] - t.Value
-            sprintf """UPDATE [EventTickets] SET RemainingQuantity = %d WHERE TicketTypeId = '%s';""" newRemainingQuantity t.Key
-        
         // Decreased the remaining quantities for the ticket types we have handled
-        do! async {
-            use update = conn.CreateCommand()
-            update.CommandText <- System.String.Join("\n", tickets |> Seq.map toCommand)
-            update.ExecuteNonQuery() |> ignore
-        }
-
+        let! result = 
+            conn.ExecuteAsync(
+                """UPDATE [EventTickets] SET RemainingQuantity = @RemainingQuantity WHERE TicketTypeId = @TicketTypeId""", 
+                tickets |> Seq.map (fun t -> { AvailableTicket.TicketTypeId = t.Key; RemainingQuantity = availableTickets.[t.Key] - t.Value }),
+                transaction
+            ) |> Async.AwaitTask
+        
         return Some transaction
     else
         // Not all of the requested ticket types are available in the requested quantities. 
@@ -73,14 +76,11 @@ let ``reserve tickets`` (conn : IDbConnection) (tickets : IDictionary<string, in
 
 /// Writes the provided ticket allocation records to the database as part of a wider transaction scope
 let ``record allocations`` (transaction : IDbTransaction) (allocations : TicketsAllocatedEvent) = async {
-    let insertValues = allocations.Tickets |> Array.map(fun t -> sprintf "('%s', '%s', '%s', %G)" t.TicketTypeId t.TicketId allocations.OrderId t.Price)
-    
-    use command = transaction.Connection.CreateCommand()
-    command.CommandText <- 
-        sprintf """INSERT INTO [AllocatedTickets] (TicketTypeId, TicketId, OrderId, Price) VALUES %s""" (System.String.Join(",", insertValues))
-    
-    return! async { 
-        command.ExecuteNonQuery() |> ignore
-        return ()
-    }
+    let! result = 
+        transaction.Connection.ExecuteAsync(
+            """INSERT INTO [AllocatedTickets] (TicketTypeId, TicketId, OrderId, AllocatedAt, Price) VALUES (@TicketTypeId, @TicketId, @OrderId, @AllocatedAt, @Price)""",
+            allocations.Tickets |> Array.map (fun t -> { TicketTypeId = t.TicketTypeId; TicketId = t.TicketId; OrderId = allocations.OrderId; AllocatedAt = t.AllocatedAt; Price = t.Price}),
+            transaction
+        ) |> Async.AwaitTask
+    return ()
 }

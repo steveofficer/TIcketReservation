@@ -4,71 +4,52 @@ open AvailabilityService.Types
 open AvailabilityService.Contract.Events
 open System.Data
 open System.Collections.Generic
+open Dapper
+
+type OrderIdFilter = {
+    OrderId : string
+}
+
+type EventIdFilter = {
+    EventId : string
+}
+
+type TicketTypeFilter = {
+    EventId : string
+    TicketTypeId : string
+}
 
 /// Find the remaining quantities for each of the ticket types for the requested event
 let ``get event ticket availability`` (conn : IDbConnection) (``event id`` : string) = async {
     // Create the command
-    use command = conn.CreateCommand()
-    command.CommandText <- """SELECT [TicketTypeId], [RemainingQuantity] FROM [EventTickets] WHERE [EventId] = @eventId"""
+    let! ticketInfo = 
+        conn.QueryAsync<EventTicketInfo>(
+            """SELECT [TicketTypeId], [RemainingQuantity] FROM [EventTickets] WHERE [EventId] = @EventId""",
+            { EventIdFilter.EventId = ``event id`` }
+        ) |> Async.AwaitTask
     
-    // Use parameterized SQL to provide the eventId filter to avoid a SQL Injection attack
-    command.CreateParameter(ParameterName = "@eventId", Value = ``event id``)
-    |> command.Parameters.Add
-    |> ignore
-
-    // Run the query asynchronously and return the queried data
-    return! async { 
-        use reader = command.ExecuteReader() 
-        return 
-            [|
-                while reader.Read() do
-                    yield { TicketTypeId = reader.GetString(0); RemainingQuantity = reader.GetInt32(1) }
-            |]
-    }
+    return ticketInfo |> Seq.toArray
 }
 
 let ``get ticket type availability`` (conn : IDbConnection) (``event id`` : string) (``ticket type id`` : string) = async {
     // Create the command
-    use command = conn.CreateCommand()
-    command.CommandText <- """SELECT [RemainingQuantity] FROM [EventTickets] WHERE [EventId] = @eventId AND [TicketTypeId] = @ticketType"""
-    
-    // Use parameterized SQL to provide the eventId filter to avoid a SQL Injection attack
-    command.CreateParameter(ParameterName = "@eventId", Value = ``event id``)
-    |> command.Parameters.Add
-    |> ignore
-
-    // Use parameterized SQL to provide the ticketTypeId filter to avoid a SQL Injection attack
-    command.CreateParameter(ParameterName = "@ticketType", Value = ``ticket type id``)
-    |> command.Parameters.Add
-    |> ignore
-
-    // Run the query asynchronously and return the queried data
-    return! async { 
-        use reader = command.ExecuteReader() 
-        if reader.Read()
-        then return reader.GetInt32(0)
-        else return 0
-    }
+    return! 
+        conn.QueryFirstAsync<int32>(
+            """SELECT [RemainingQuantity] FROM [EventTickets] WHERE [EventId] = @EventId AND [TicketTypeId] = @TicketTypeId""",
+            { EventId = ``event id``; TicketTypeId = ``ticket type id`` }
+        ) |> Async.AwaitTask
 }
 
 /// Find any existing allocated tickets for the requested order id
 let ``find existing allocations`` (conn : IDbConnection) (``order id`` : string) = async {
     // Create the command
-    use command = conn.CreateCommand()
-    command.CommandText <- """SELECT [TicketTypeId], [TicketId], [Price] FROM [AllocatedTickets] WHERE [OrderId] = @orderid"""
+    let! allocations = 
+        conn.QueryAsync<AllocationInfo>(
+            """SELECT [TicketTypeId], [TicketId], [AllocatedAt], [Price] FROM [AllocatedTickets] WHERE [OrderId] = @OrderId""",
+            { OrderId = ``order id``}
+        ) |> Async.AwaitTask
     
-    // Use parameterized SQL to provide the orderId filter to avoid a SQL Injection attack
-    command.CreateParameter(ParameterName = "@orderId", Value = ``order id``)
-    |> command.Parameters.Add
-    |> ignore
-    
-    return! async {
-        use reader = command.ExecuteReader()
-        return [|
-            while reader.Read() do
-                yield { AllocationInfo.TicketTypeId = reader.GetString(0); TicketId = reader.GetString(1); Price = reader.GetDecimal(2) }
-        |]
-    }
+    return allocations |> Seq.toArray
 }
 
 /// Find any existing allocated tickets for the requested order id
@@ -87,4 +68,3 @@ let ``cancellation exists`` (conn : IDbConnection) (``cancellation id`` : string
         return System.Convert.ToInt32(count) > 0
     }
 }
-

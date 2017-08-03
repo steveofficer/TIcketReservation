@@ -8,6 +8,7 @@ type EventTicketInfo = {
 type AllocationInfo = {
     TicketTypeId : string
     TicketId : string
+    AllocatedAt : System.DateTime
     Price : decimal
 }
 

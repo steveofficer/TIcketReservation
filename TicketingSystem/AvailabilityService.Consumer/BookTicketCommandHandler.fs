@@ -15,17 +15,17 @@ type BookTicketsCommandHandler
     recordAllocation : IDbTransaction -> TicketsAllocatedEvent -> Async<unit>) =
     inherit RabbitMQ.Subscriber.PublishingMessageHandler<BookTicketsCommand>(publish)
     
-    member private this.``handle new allocation`` (message : BookTicketsCommand) (conn) = async {
+    member private this.``handle new allocation`` (requestedAt) (message : BookTicketsCommand) (conn) = async {
         // Pre generate the tickets so we don't hold a lock for too long, only lock when we need to.
         let allocatedTickets = 
             message.Tickets 
-            |> Array.collect (fun t -> [| for _ in 0 .. t.Quantity do yield { AllocatedTicket.TicketTypeId = t.TicketTypeId; TicketId = ObjectId.GenerateNewId().ToString(); Price = t.PriceEach } |])
+            |> Array.collect (fun t -> [| for _ in 1 .. t.Quantity do yield { AllocatedTicket.TicketTypeId = t.TicketTypeId; AllocatedAt = System.DateTime.UtcNow; TicketId = ObjectId.GenerateNewId().ToString(); Price = t.PriceEach } |])
             
         let allocatedEvent = {
             EventId = message.EventId
             OrderId = message.OrderId
             PaymentReference = message.PaymentReference
-            RequestedAt = System.DateTime.UtcNow
+            RequestedAt = requestedAt
             UserId = message.UserId
             TotalPrice = allocatedTickets |> Array.map (fun t -> t.Price) |> Array.sum
             Tickets = allocatedTickets
@@ -73,17 +73,17 @@ type BookTicketsCommandHandler
         let! existingAllocation = findExistingAllocation conn message.OrderId
         
         match existingAllocation with
-        | [||] -> do! this.``handle new allocation`` message conn
+        | [||] -> do! this.``handle new allocation`` sentAt message conn
         | allocatedTickets ->
             // We have previously allocated these tickets. Re-publish the event as there might have been a previous failure that prevented this from happening.
             let allocatedEvent = {
                 EventId = message.EventId
                 OrderId = message.OrderId
                 PaymentReference = message.PaymentReference
-                RequestedAt = System.DateTime.UtcNow
+                RequestedAt = sentAt
                 UserId = message.UserId
                 TotalPrice = allocatedTickets |> Array.map (fun e -> e.Price) |> Array.sum
-                Tickets = allocatedTickets |> Array.map (fun t -> { TicketTypeId = t.TicketTypeId; TicketId = t.TicketId; Price = t.Price})
+                Tickets = allocatedTickets |> Array.map (fun t -> { TicketTypeId = t.TicketTypeId; AllocatedAt = t.AllocatedAt; TicketId = t.TicketId; Price = t.Price})
             }
             do! this.Publish allocatedEvent
     }
