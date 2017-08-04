@@ -39,6 +39,7 @@ type LedgerTransactionSerializer() =
                 context.Writer.WriteEndDocument()
             context.Writer.WriteName("_t")
             context.Writer.WriteString("Cancellation")
+            context.Writer.WriteName("Tickets")
             context.Writer.WriteStartArray()
             c.Tickets |> Array.iter serializeTicket
             context.Writer.WriteEndArray()
@@ -53,9 +54,12 @@ type LedgerTransactionSerializer() =
                 context.Writer.WriteEndDocument()
             context.Writer.WriteName("_t")
             context.Writer.WriteString("Allocation")
+            context.Writer.WriteName("Tickets")
             context.Writer.WriteStartArray()
             a.Tickets |> Array.iter serializeTicket
             context.Writer.WriteEndArray()
+            context.Writer.WriteName("TotalPrice")
+            context.Writer.WriteDouble((float)a.TotalPrice)
             ()
         context.Writer.WriteEndDocument()
 
