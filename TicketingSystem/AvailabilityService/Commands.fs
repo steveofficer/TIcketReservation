@@ -50,7 +50,12 @@ let ``reserve tickets`` (conn : IDbConnection) (tickets : IDictionary<string, in
     // First see how many remaining tickets there are for each of the ticket types we are trying to make
     // reservations for.
     let! availableTickets = async {
-        let! result = conn.QueryAsync<AvailableTicket>("""SELECT [TicketTypeId], [RemainingQuantity] FROM [EventTickets] WHERE [RemainingQuantity] <> 0 AND [TicketTypeId] IN @TicketIds""", {TicketIds = (tickets.Keys |> Array.ofSeq) }, transaction) |> Async.AwaitTask
+        let! result = 
+            conn.QueryAsync<AvailableTicket>(
+                """SELECT [TicketTypeId], [RemainingQuantity] FROM [EventTickets] WITH (UPDLOCK) WHERE [RemainingQuantity] <> 0 AND [TicketTypeId] IN @TicketIds""", 
+                {TicketIds = (tickets.Keys |> Array.ofSeq) }, 
+                transaction
+            ) |> Async.AwaitTask
         return  result |> Seq.map (fun t -> (t.TicketTypeId, t.RemainingQuantity)) |> dict
     }
 
