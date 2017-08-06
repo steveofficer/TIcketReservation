@@ -44,6 +44,11 @@ let main argv =
         let query = LedgerService.Queries.``get ticket charges`` mongoDb
         AvailabilityService.Handlers.``cancel tickets`` ``id gen`` query publisher.publish
 
+    // Create the handler that manages the request to get the list of ticket types for an event
+    let ``get event ticket types`` = 
+        let query = AdminService.Queries.``get event ticket types`` mongoDb
+        AdminService.Web.Handlers.``get event ticket types`` query
+
     // Create the handler that manages the request to get the list of ticket prices for an event
     let ``get ticket prices for event`` = 
         let query = PricingService.Queries.``get event ticket prices`` mongoDb
@@ -77,6 +82,7 @@ let main argv =
                     path "/events" >=> ``get events``
                     pathScan "/events/%s/pricing" ``get ticket prices for event``
                     pathScan "/events/%s/availability" ``get ticket availability for event``
+                    pathScan "/events/%s" ``get event ticket types``
                 ]
             
             POST >=> 

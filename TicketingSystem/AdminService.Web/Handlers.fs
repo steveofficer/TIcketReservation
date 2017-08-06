@@ -19,6 +19,11 @@ let ``get event details`` (query : string -> Async<AdminService.Web.Types.EventD
     | None -> return! NOT_FOUND "Event not found" ctx
 }
 
+let ``get event ticket types``  (query : string -> Async<Ticket[] * System.DateTime>) (eventId : string) (ctx : HttpContext) = async {
+    let! (tickets, at) = query eventId
+    return! [| tickets :> obj; at :> obj |] |> JsonConvert.SerializeObject |> OK <| ctx
+}
+
 let ``create event`` (newId : unit -> string) (command : EventDetail -> Async<unit>) (ctx : HttpContext) = async {
     let event = 
         ctx.request.rawForm 
