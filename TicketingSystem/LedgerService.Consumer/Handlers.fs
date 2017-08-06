@@ -21,7 +21,7 @@ type TicketsCancelledHandler
             let details = { 
                 CancellationId = message.CancellationId
                 TotalPrice = message.TotalPrice 
-                Tickets = message.Tickets |> Array.map (fun t -> { TicketTypeId = t.TicketTypeId; TicketId = t.TicketId })
+                Tickets = message.Tickets |> Array.map (fun t -> { TicketTypeId = t.TicketTypeId; TicketId = t.TicketId; Price = t.Price })
             }
             return! 
                 {
@@ -51,7 +51,7 @@ type TicketsAllocatedHandler
             // Transform the event to the relevant transaction type and store it in the database
             let details = { 
                 AllocationDetails.TotalPrice = message.TotalPrice
-                Tickets = message.Tickets |> Array.map (fun t -> { TicketTypeId = t.TicketTypeId; TicketId = t.TicketId }) 
+                Tickets = message.Tickets |> Array.map (fun t -> { TicketTypeId = t.TicketTypeId; TicketId = t.TicketId; Price = t.Price }) 
             }
             return! 
                 {

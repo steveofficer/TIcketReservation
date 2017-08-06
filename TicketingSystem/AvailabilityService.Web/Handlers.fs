@@ -28,10 +28,19 @@ type AvailabilityResponse = {
     Quantity : int32
 }
 
+type CancelTicketsRequest = {
+    UserId : string
+    Tickets : Ticket[]
+} and Ticket = {
+    TicketTypeId : string
+    OrderId : string
+    TicketId : string
+}
+
 let ``get event ticket availability`` (query : string -> Async<EventTicketInfo[]>) (``event id`` : string) (ctx : HttpContext) = async {
     let at = System.DateTime.UtcNow
     let! event = query ``event id``
-    return! event |> JsonConvert.SerializeObject |> OK <| ctx
+    return! [| event, at|] |> JsonConvert.SerializeObject |> OK <| ctx
 }
 
 let ``confirm order`` verify_signature (send : BookTicketsCommand -> Async<unit>) (``event id`` : string) (ctx : HttpContext) = async {
@@ -55,6 +64,13 @@ let ``confirm order`` verify_signature (send : BookTicketsCommand -> Async<unit>
         return! ACCEPTED request.OrderId ctx
 }
 
-let ``cancel tickets`` (query : string -> string[] -> Async<decimal[]>) (send : CancelTicketsCommand -> Async<unit>) (``event id`` : string) (ctx : HttpContext) = async {
-    return! OK "xx" ctx
+let ``cancel tickets`` ``id gen`` (query : string -> string[] -> Async<decimal[]>) (send : CancelTicketsCommand -> Async<unit>) (``event id`` : string) (ctx : HttpContext) = async {
+    let request = 
+        ctx.request.rawForm 
+        |> System.Text.UTF8Encoding.UTF8.GetString 
+        |> (fun s -> JsonConvert.DeserializeObject<CancelTicketsRequest>(s))
+    
+    let cancellationId = ``id gen``()
+
+    return! ACCEPTED "" ctx
 }

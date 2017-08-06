@@ -55,7 +55,6 @@
     <Compile Include="Types.fs" />
     <Compile Include="Commands.fs" />
     <Compile Include="Queries.fs" />
-    <Compile Include="Handlers.fs" />
     <Content Include="packages.config" />
   </ItemGroup>
   <ItemGroup>

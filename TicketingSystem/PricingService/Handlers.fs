@@ -12,14 +12,14 @@ open Newtonsoft.Json
 open PricingService.Contract.Events
 
 let ``get event ticket prices`` (query : string -> Async<EventPricing option * System.DateTime>) (``event id`` : string) (ctx : HttpContext) = async {
-    let! (event, asAt) = query ``event id``
+    let! (event, at) = query ``event id``
     return!
         match event with
-        | Some event -> event |> JsonConvert.SerializeObject |> OK <| ctx
+        | Some event -> [| event, at |] |> JsonConvert.SerializeObject |> OK <| ctx
         | None -> NOT_FOUND "Event not found" ctx
 }
 
-let ``create quote`` create_signature query (publish : TicketsQuotedEvent -> Async<unit>) (eventId : string) (ctx : HttpContext) = async {
+let ``create quote`` ``id gen`` create_signature query (publish : TicketsQuotedEvent -> Async<unit>) (eventId : string) (ctx : HttpContext) = async {
     let request = 
         ctx.request.rawForm 
         |> System.Text.UTF8Encoding.UTF8.GetString 
@@ -37,7 +37,7 @@ let ``create quote`` create_signature query (publish : TicketsQuotedEvent -> Asy
                 }
             )
             |> (fun pricedTickets -> 
-                let orderId =  ObjectId.GenerateNewId().ToString()
+                let orderId =  ``id gen``()
                 let totalPrice = pricedTickets |> Array.sumBy (fun t -> t.TotalPrice)
                 { 
                     OrderId = orderId
@@ -73,5 +73,5 @@ let ``create quote`` create_signature query (publish : TicketsQuotedEvent -> Asy
     | None -> return! NOT_FOUND "Either the event or the ticket types did not exist" ctx
     | Some priced_tickets ->
         do! publish (priced_tickets |> asEvent)
-        return! priced_tickets |> JsonConvert.SerializeObject|> ACCEPTED <| ctx  
+        return! [| priced_tickets, asAt |] |> JsonConvert.SerializeObject|> ACCEPTED <| ctx  
 } 

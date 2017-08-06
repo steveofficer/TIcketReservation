@@ -1,7 +1,6 @@
 ﻿namespace AvailabilityBooking
 open AvailabilityService.Contract.Commands
 open AvailabilityService.Contract.Events
-open MongoDB.Bson
 open AvailabilityService.Types
 open System.Data
 open System.Collections.Generic
@@ -9,6 +8,7 @@ open System.Collections.Generic
 type BookTicketsCommandHandler
     (
     publish, 
+    ``id gen`` : unit -> string,
     factory : unit -> Async<IDbConnection>,
     findExistingAllocation : IDbConnection -> string -> Async<AllocationInfo[]>, 
     reserveTickets : IDbConnection -> IDictionary<string, int32> -> Async<IDbTransaction option>, 
@@ -19,7 +19,7 @@ type BookTicketsCommandHandler
         // Pre generate the tickets so we don't hold a lock for too long, only lock when we need to.
         let allocatedTickets = 
             message.Tickets 
-            |> Array.collect (fun t -> [| for _ in 1 .. t.Quantity do yield { AllocatedTicket.TicketTypeId = t.TicketTypeId; AllocatedAt = System.DateTime.UtcNow; TicketId = ObjectId.GenerateNewId().ToString(); Price = t.PriceEach } |])
+            |> Array.collect (fun t -> [| for _ in 1 .. t.Quantity do yield { AllocatedTicket.TicketTypeId = t.TicketTypeId; AllocatedAt = System.DateTime.UtcNow; TicketId = ``id gen``(); Price = t.PriceEach } |])
             
         let allocatedEvent = {
             EventId = message.EventId

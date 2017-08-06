@@ -23,6 +23,14 @@ type AllocatedTicket = {
     Price : decimal
 }
 
+type CancelledTicket = { 
+    TicketTypeId : string
+    TicketId : string
+    OrderId : string
+    CancelledOn : System.DateTime
+    Price : decimal
+}
+
 let ``create event ticket type`` (conn : IDbConnection) (``event id`` : string) (``ticket type id`` : string) (quantity : int32) = async {
     let insertValues = sprintf "('%s', '%s', %d, %d)" ``event id`` ``ticket type id`` quantity quantity
     
@@ -37,6 +45,11 @@ let ``create event ticket type`` (conn : IDbConnection) (``event id`` : string) 
 }
     
 let ``record cancellation`` (conn : IDbConnection) (cancellation : TicketsCancelledEvent) = async {
+    let! result = 
+        conn.ExecuteAsync(
+            """INSERT INTO [CancelledTickets] (TicketTypeId, TicketId, OrderId, CancelledOn, Price) VALUES (@TicketTypeId, @TicketId, @OrderId, @CancelledOn, @Price)""",
+            cancellation.Tickets |> Array.map (fun t -> { TicketTypeId = t.TicketTypeId; TicketId = t.TicketId; OrderId = cancellation.OrderId; CancelledOn = cancellation.RequestedAt; Price = t.Price})
+        ) |> Async.AwaitTask
     return ()
 }
 

@@ -1,5 +1,14 @@
 ﻿module LedgerService.Types
 
+type PriceQuery = {
+    EventId : string
+    Details : PriceDetail
+} and PriceDetail = {
+    TransactionType : string
+    TicketId : string
+    Price : decimal
+}
+
 type CancellationDetails = {
     CancellationId : string
     TotalPrice : decimal
@@ -7,6 +16,7 @@ type CancellationDetails = {
 } and CancelledTicket = {
     TicketTypeId : string
     TicketId : string
+    Price : decimal
 }
 
 type AllocationDetails = {
@@ -15,6 +25,7 @@ type AllocationDetails = {
 } and AllocatedTicket = {
     TicketTypeId : string
     TicketId : string
+    Price : decimal
 }
 
 type QuoteDetails = {

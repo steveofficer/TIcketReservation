@@ -9,6 +9,7 @@ open System.Data.SqlClient
 let main argv = 
     let connectionSettings = System.Configuration.ConfigurationManager.ConnectionStrings
     let appSettings = System.Configuration.ConfigurationManager.AppSettings
+    
     // Create the connection to MongoDB
     let mongoClient = MongoDB.Driver.MongoClient(connectionSettings.["mongo"].ConnectionString)
     let mongoDb = mongoClient.GetDatabase(appSettings.["database"])
@@ -21,10 +22,12 @@ let main argv =
 
     let secureKey = appSettings.["secure_key"]
    
+    let ``id gen`` () = MongoDB.Bson.ObjectId.GenerateNewId().ToString()
+
     // Create the handler that manages the request to create a quote for a ticket request
     let ``generate a quote`` = 
         let query = PricingService.Queries.``get ticket prices`` mongoDb
-        PricingService.Handlers.``create quote`` (Security.``create signature`` secureKey) query publisher.publish
+        PricingService.Handlers.``create quote`` ``id gen`` (Security.``create signature`` secureKey) query publisher.publish
     
     // Create the handler that manages the request to get the list of events
     let ``get events`` = 
@@ -38,8 +41,8 @@ let main argv =
 
     // Create the handler that manages the request to cancel tickets
     let ``cancel tickets`` =  
-        let query = LedgerService.Queries.``get ticket prices`` mongoDb
-        AvailabilityService.Handlers.``cancel tickets`` query publisher.publish
+        let query = LedgerService.Queries.``get ticket charges`` mongoDb
+        AvailabilityService.Handlers.``cancel tickets`` ``id gen`` query publisher.publish
 
     // Create the handler that manages the request to get the list of ticket prices for an event
     let ``get ticket prices for event`` = 
@@ -83,7 +86,7 @@ let main argv =
 
             DELETE >=>
                 choose [        
-                    pathScan "/event/%s/order" ``cancel tickets``
+                    pathScan "/event/%s/tickets" ``cancel tickets``
                 ]
 
             NOT_FOUND "The requested path is not valid."

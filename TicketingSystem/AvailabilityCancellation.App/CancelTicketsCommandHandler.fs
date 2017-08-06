@@ -22,7 +22,7 @@ type CancelTicketsCommandHandler
             OrderId = message.OrderId
             CancellationId = message.CancellationId
             RequestedAt = sentAt
-            Tickets = message.Tickets |> Array.map (fun t -> { TicketTypeId = t.TicketTypeId; TicketId = t.TicketId })
+            Tickets = message.Tickets |> Array.map (fun t -> { TicketTypeId = t.TicketTypeId; TicketId = t.TicketId; Price = t.Price })
             TotalPrice = message.TotalPrice
             UserId = message.UserId
         }
@@ -36,7 +36,6 @@ type CancelTicketsCommandHandler
         then
             // It hasn't been handled yet, so record the cancellation
             do! cancelTickets conn cancellation
-            
             
         // Publish the event
         do! this.Publish cancellation

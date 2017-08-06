@@ -24,9 +24,18 @@ let main argv =
     let publisher = RabbitMQ.Publisher.PublishChannel("Availability.Booking", connection)
     publisher.registerEvents([| "AvailabilityService.Contract" |])
     
+    let ``id gen`` () = MongoDB.Bson.ObjectId.GenerateNewId().ToString()
+
     // Set up the subscribers
     let service = Service(connection, "Availability.Booking")
-    AvailabilityBooking.BookTicketsCommandHandler(publisher.publish, connectionFactory, ``find existing allocations``, ``reserve tickets``, ``record allocations``) |> service.``add subscriber``
+    AvailabilityBooking.BookTicketsCommandHandler(
+        publisher.publish, 
+        ``id gen``, 
+        connectionFactory, 
+        ``find existing allocations``, 
+        ``reserve tickets``, 
+        ``record allocations``
+    ) |> service.``add subscriber``
     
     // Start the service
     service.Start()

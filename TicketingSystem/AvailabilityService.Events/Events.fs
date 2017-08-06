@@ -26,6 +26,7 @@ type TicketsCancelledEvent = {
 } and CancelledTicket = {
     TicketTypeId : string
     TicketId : string
+    Price : decimal
 }
 
 type TicketsAllocationFailedEvent = {

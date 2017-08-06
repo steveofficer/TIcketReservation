@@ -1,6 +1,7 @@
 ﻿module LedgerService.Queries
 
 open MongoDB.Driver
+open MongoDB.Bson
 open Types
 
 let ``collection name`` = "Ledger"
@@ -21,6 +22,10 @@ let ``already handled`` (db : IMongoDatabase) (``message id`` : System.Guid) = a
     return! collection.Find(fun t -> t.SourceId = ``message id``).AnyAsync() |> Async.AwaitTask
 }
 
-let ``get ticket prices`` (db : IMongoDatabase) (``event id`` : string) (``ticket ids`` : string[]) = async {
+let ``get ticket charges`` (db : IMongoDatabase) (``event id`` : string) (``ticket ids`` : string[]) = async {
+    // Get access to the collection
+    let collection = db.GetCollection<PriceQuery>(``collection name``)
+    // Return whether or not any records exist with the corresponding source
+    //return! collection.Find(fun t -> t.EventId = ``event id`` & t.).AnyAsync() |> Async.AwaitTask
     return [|0M|]
 }
