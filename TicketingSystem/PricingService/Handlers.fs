@@ -15,7 +15,7 @@ let ``get event ticket prices`` (query : string -> Async<EventPricing option * S
     let! (event, at) = query ``event id``
     return!
         match event with
-        | Some event -> [| event, at |] |> JsonConvert.SerializeObject |> OK <| ctx
+        | Some event -> [| event :> obj; at :> obj |] |> JsonConvert.SerializeObject |> OK <| ctx
         | None -> NOT_FOUND "Event not found" ctx
 }
 

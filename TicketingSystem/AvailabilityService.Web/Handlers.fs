@@ -40,7 +40,7 @@ type CancelTicketsRequest = {
 let ``get event ticket availability`` (query : string -> Async<EventTicketInfo[]>) (``event id`` : string) (ctx : HttpContext) = async {
     let at = System.DateTime.UtcNow
     let! event = query ``event id``
-    return! [| event, at|] |> JsonConvert.SerializeObject |> OK <| ctx
+    return! [| event :> obj; at :> obj |] |> JsonConvert.SerializeObject |> OK <| ctx
 }
 
 let ``confirm order`` verify_signature (send : BookTicketsCommand -> Async<unit>) (``event id`` : string) (ctx : HttpContext) = async {

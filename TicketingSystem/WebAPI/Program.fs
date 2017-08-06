@@ -51,9 +51,10 @@ let main argv =
 
     // Create the handler that manages the request to get the list of ticket availability for an event
     let ``get ticket availability for event`` = 
-        let query event = 
-            use connection = new SqlConnection(connectionSettings.["sql"].ConnectionString)
-            AvailabilityService.Queries.``get event ticket availability`` connection event
+        let query event = async {
+            use conn = new SqlConnection(connectionSettings.["sql"].ConnectionString)
+            return! AvailabilityService.Queries.``get event ticket availability`` conn event
+        }
 
         AvailabilityService.Handlers.``get event ticket availability`` query
     
@@ -74,19 +75,19 @@ let main argv =
                 choose [
                     pathScan "/users/%s/tickets" ``get user tickets``
                     path "/events" >=> ``get events``
-                    pathScan "/event/%s/pricing" ``get ticket prices for event``
-                    pathScan "/event/%s/availability" ``get ticket availability for event``
+                    pathScan "/events/%s/pricing" ``get ticket prices for event``
+                    pathScan "/events/%s/availability" ``get ticket availability for event``
                 ]
             
             POST >=> 
                 choose [
-                    pathScan "/event/%s/quote" ``generate a quote``
-                    pathScan "/event/%s/order" ``order the tickets``
+                    pathScan "/events/%s/quote" ``generate a quote``
+                    pathScan "/events/%s/order" ``order the tickets``
                 ]
 
             DELETE >=>
                 choose [        
-                    pathScan "/event/%s/tickets" ``cancel tickets``
+                    pathScan "/events/%s/tickets" ``cancel tickets``
                 ]
 
             NOT_FOUND "The requested path is not valid."
