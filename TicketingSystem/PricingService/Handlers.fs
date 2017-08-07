@@ -73,5 +73,5 @@ let ``create quote`` ``id gen`` create_signature query (publish : TicketsQuotedE
     | None -> return! NOT_FOUND "Either the event or the ticket types did not exist" ctx
     | Some priced_tickets ->
         do! publish (priced_tickets |> asEvent)
-        return! [| priced_tickets, asAt |] |> JsonConvert.SerializeObject|> ACCEPTED <| ctx  
+        return! [| priced_tickets :> obj; asAt :> obj |] |> JsonConvert.SerializeObject|> ACCEPTED <| ctx  
 } 
