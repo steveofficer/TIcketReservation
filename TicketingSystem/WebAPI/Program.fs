@@ -36,8 +36,8 @@ let main argv =
 
     // Create the handler that manages the request to get the list of tickets purchased by a user
     let ``get user tickets`` =  
-        let query = LedgerService.Queries.``get user tickets`` mongoDb
-        LedgerService.Handlers.``get tickets`` query
+        let query = LedgerService.Queries.``get user cancellable tickets`` mongoDb
+        LedgerService.Handlers.``get user cancellable tickets`` query
 
     // Create the handler that manages the request to cancel tickets
     let ``cancel tickets`` =  

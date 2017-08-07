@@ -12,20 +12,12 @@ type CancelTicketsCommandHandler
     publish, 
     factory : unit -> Async<IDbConnection>,
     cancellationExists : IDbConnection -> string -> Async<bool>,
+    ticketsCanBeCancelled : IDbConnection -> string[] -> Async<bool>,
     cancelTickets : IDbConnection -> TicketsCancelledEvent -> Async<unit>) =
     inherit RabbitMQ.Subscriber.PublishingMessageHandler<CancelTicketsCommand>(publish)
     
     override this.HandleMessage (messageId) (sentAt) (message : CancelTicketsCommand) = async {
-        // Create the cancellation event that we are going to publish
-        let cancellation = {
-            EventId = message.EventId
-            OrderId = message.OrderId
-            CancellationId = message.CancellationId
-            RequestedAt = sentAt
-            Tickets = message.Tickets |> Array.map (fun t -> { TicketTypeId = t.TicketTypeId; TicketId = t.TicketId; Price = t.Price })
-            TotalPrice = message.TotalPrice
-            UserId = message.UserId
-        }
+        
 
         use! conn = factory()
         
@@ -34,10 +26,35 @@ type CancelTicketsCommandHandler
         
         if not alreadyHandled 
         then
-            // It hasn't been handled yet, so record the cancellation
-            do! cancelTickets conn cancellation
-            
-        // Publish the event
-        do! this.Publish cancellation
-        return () 
+            // Check that the tickets actually exist and that they can be cancelled
+            let! canBeCancelled = ticketsCanBeCancelled conn (message.Tickets |> Array.map (fun t -> t.TicketId)) 
+            if canBeCancelled
+            then 
+                // Create the cancellation event that we are going to publish
+                let cancellation = {
+                    EventId = message.EventId
+                    OrderId = message.OrderId
+                    CancellationId = message.CancellationId
+                    RequestedAt = sentAt
+                    Tickets = message.Tickets |> Array.map (fun t -> { TicketTypeId = t.TicketTypeId; TicketId = t.TicketId; Price = t.Price })
+                    TotalPrice = message.TotalPrice
+                    UserId = message.UserId
+                }
+                // It hasn't been handled yet, so record the cancellation
+                do! cancelTickets conn cancellation
+                do! this.Publish cancellation
+            else 
+                let failure = {
+                    TicketsCancellationFailedEvent.EventId = message.EventId
+                    OrderId = message.OrderId
+                    CancellationId = message.CancellationId
+                    RequestedAt = sentAt
+                    TotalPrice = message.TotalPrice
+                    UserId = message.UserId
+                    Reason = "Cancellation failed"
+                }
+                // The tickets can't be cancelled so fail the request
+                do! this.Publish failure
+        
+        return ()
     }

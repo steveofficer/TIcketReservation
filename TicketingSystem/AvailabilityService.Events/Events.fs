@@ -41,3 +41,12 @@ type TicketsAllocationFailedEvent = {
     Quantity : int32
 }
 
+type TicketsCancellationFailedEvent = {
+    EventId : string
+    OrderId : string
+    CancellationId : string
+    RequestedAt : System.DateTime
+    TotalPrice : decimal
+    UserId : string
+    Reason : string
+}

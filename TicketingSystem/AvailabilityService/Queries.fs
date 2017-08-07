@@ -68,3 +68,7 @@ let ``cancellation exists`` (conn : IDbConnection) (``cancellation id`` : string
         return System.Convert.ToInt32(count) > 0
     }
 }
+
+let ``can tickets be cancelled`` (conn : IDbConnection) (``ticket ids`` : string[]) = async {
+    return true
+}

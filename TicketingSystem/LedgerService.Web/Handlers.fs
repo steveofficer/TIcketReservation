@@ -7,7 +7,7 @@ open Suave.Operators
 open LedgerService.Types
 open Newtonsoft.Json
 
-let ``get tickets`` (query : string -> Async<Transaction[] option * System.DateTime>) (``user id`` : string) (ctx : HttpContext) = async {
+let ``get user cancellable tickets`` (query : string -> Async<CancellableTicket[] * System.DateTime>) (``user id`` : string) (ctx : HttpContext) = async {
     let! userAllocations = query ``user id``
     return! OK "" ctx
 }

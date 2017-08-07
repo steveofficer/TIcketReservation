@@ -51,3 +51,9 @@ type Transaction = {
     TransactionDate : System.DateTime    
     Details : TransactionDetails
 }
+
+type CancellableTicket = {
+    TicketTypeId : string
+    TicketId : string
+    Price : decimal
+}

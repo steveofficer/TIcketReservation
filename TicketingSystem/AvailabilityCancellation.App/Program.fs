@@ -25,7 +25,9 @@ let main argv =
     
     // Set up the subscribers
     let service = Service(connection, "Availability.Cancellation")
-    AvailabilityCancellation.CancelTicketsCommandHandler(publisher.publish, connectionFactory, ``cancellation exists``, ``record cancellation``) |> service.``add subscriber``
+    AvailabilityCancellation.CancelTicketsCommandHandler(
+        publisher.publish, connectionFactory, ``cancellation exists``, ``can tickets be cancelled``, ``record cancellation``
+    ) |> service.``add subscriber``
     
     // Start the service
     service.Start()
