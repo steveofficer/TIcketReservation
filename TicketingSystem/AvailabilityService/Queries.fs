@@ -19,6 +19,10 @@ type TicketTypeFilter = {
     TicketTypeId : string
 }
 
+type TicketFilter = {
+    TicketIds : string[]
+}
+
 /// Find the remaining quantities for each of the ticket types for the requested event
 let ``get event ticket availability`` (conn : IDbConnection) (``event id`` : string) = async {
     // Create the command
@@ -70,5 +74,11 @@ let ``cancellation exists`` (conn : IDbConnection) (``cancellation id`` : string
 }
 
 let ``can tickets be cancelled`` (conn : IDbConnection) (``ticket ids`` : string[]) = async {
-    return true
+    // If the tickets have already been cancelled then they cannot be cancelled again. 
+    let! count = 
+        conn.QueryFirstAsync<int32>(
+            """SELECT COUNT (*) FROM [CancelledTickets] WHERE [TicketId] IN @TicketIds""",
+            { TicketIds = ``ticket ids`` }
+        ) |> Async.AwaitTask
+    return count = 0
 }
