@@ -1,4 +1,4 @@
-﻿module Serializer
+﻿module LedgerService.Serializer
 open LedgerService.Types
 open MongoDB.Bson
 

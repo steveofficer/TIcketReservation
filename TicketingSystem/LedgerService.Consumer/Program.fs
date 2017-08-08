@@ -13,7 +13,7 @@ let main argv =
     // Map the serializer to the Transaction model
     MongoDB.Bson.Serialization.BsonClassMap.RegisterClassMap<Transaction>(fun cm -> 
         cm.AutoMap()
-        cm.MapMember(fun c -> c.Details).SetSerializer(Serializer.LedgerTransactionSerializer()) |> ignore
+        cm.MapMember(fun c -> c.Details).SetSerializer(LedgerService.Serializer.LedgerTransactionSerializer()) |> ignore
     ) |> ignore
     
     // Create the connection to MongoDB
