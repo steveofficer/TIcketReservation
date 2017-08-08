@@ -40,5 +40,4 @@ let main argv =
     // Start the service
     service.Start()
     printfn "Waiting for messages..."
-    System.Console.ReadLine() |> ignore
     0

@@ -23,6 +23,10 @@ type TicketFilter = {
     TicketIds : string[]
 }
 
+type CancellationIdFilter = {
+    CancellationId : string
+}
+
 /// Find the remaining quantities for each of the ticket types for the requested event
 let ``get event ticket availability`` (conn : IDbConnection) (``event id`` : string) = async {
     // Create the command
@@ -59,18 +63,13 @@ let ``find existing allocations`` (conn : IDbConnection) (``order id`` : string)
 /// Find any existing allocated tickets for the requested order id
 let ``cancellation exists`` (conn : IDbConnection) (``cancellation id`` : string) = async {
     // Create the command
-    use command = conn.CreateCommand()
-    command.CommandText <- """SELECT COUNT (*) FROM [CancelledTickets] WHERE [CancellationId] = @cancellationId"""
-    
-    // Use parameterized SQL to provide the orderId filter to avoid a SQL Injection attack
-    command.CreateParameter(ParameterName = "@cancellationId", Value = ``cancellation id``) 
-    |> command.Parameters.Add
-    |> ignore
+    let! count = 
+        conn.QueryFirstAsync<int32>(
+            """SELECT COUNT (*) FROM [CancelledTickets] WHERE [CancellationId] = @CancellationId""",
+            { CancellationId = ``cancellation id`` }
+        ) |> Async.AwaitTask
 
-    return! async {
-        let count = command.ExecuteScalar()
-        return System.Convert.ToInt32(count) > 0
-    }
+    return count > 0
 }
 
 let ``can tickets be cancelled`` (conn : IDbConnection) (``ticket ids`` : string[]) = async {
@@ -80,5 +79,6 @@ let ``can tickets be cancelled`` (conn : IDbConnection) (``ticket ids`` : string
             """SELECT COUNT (*) FROM [CancelledTickets] WHERE [TicketId] IN @TicketIds""",
             { TicketIds = ``ticket ids`` }
         ) |> Async.AwaitTask
+
     return count = 0
 }

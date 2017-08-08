@@ -31,17 +31,21 @@ type CancelledTicket = {
     Price : decimal
 }
 
+type EventTicketType = {
+    EventId : string
+    TicketTypeId : string
+    OriginalQuantity : int32
+    RemainingQuantity : int32
+}
+
 let ``create event ticket type`` (conn : IDbConnection) (``event id`` : string) (``ticket type id`` : string) (quantity : int32) = async {
-    let insertValues = sprintf "('%s', '%s', %d, %d)" ``event id`` ``ticket type id`` quantity quantity
+    let! result =
+        conn.ExecuteAsync(
+            """INSERT INTO [EventTickets] (EventId, TicketTypeId, OriginalQuantity, RemainingQuantity) VALUES (@EventId, @TicketTypeId, @OriginalQuantity, @RemainingQuantity)""",
+            { EventId = ``event id``; TicketTypeId = ``ticket type id``; OriginalQuantity = quantity; RemainingQuantity = quantity }
+        ) |> Async.AwaitTask
     
-    use command = conn.CreateCommand()
-    command.CommandText <- 
-        sprintf """INSERT INTO [EventTickets] (EventId, TicketTypeId, OriginalQuantity, RemainingQuantity) VALUES %s""" insertValues
-    
-    return! async { 
-        command.ExecuteNonQuery() |> ignore
-        return ()
-    }
+    return ()
 }
     
 let ``record cancellation`` (conn : IDbConnection) (cancellation : TicketsCancelledEvent) = async {
@@ -66,7 +70,7 @@ let ``reserve tickets`` (conn : IDbConnection) (tickets : IDictionary<string, in
         let! result = 
             conn.QueryAsync<AvailableTicket>(
                 """SELECT [TicketTypeId], [RemainingQuantity] FROM [EventTickets] WITH (UPDLOCK) WHERE [RemainingQuantity] <> 0 AND [TicketTypeId] IN @TicketIds""", 
-                {TicketIds = (tickets.Keys |> Array.ofSeq) }, 
+                { TicketIds = (tickets.Keys |> Array.ofSeq) }, 
                 transaction
             ) |> Async.AwaitTask
         return  result |> Seq.map (fun t -> (t.TicketTypeId, t.RemainingQuantity)) |> dict

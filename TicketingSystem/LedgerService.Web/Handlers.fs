@@ -8,6 +8,6 @@ open LedgerService.Types
 open Newtonsoft.Json
 
 let ``get user cancellable tickets`` (query : string -> Async<CancellableTicket[] * System.DateTime>) (``user id`` : string) (ctx : HttpContext) = async {
-    let! userAllocations = query ``user id``
-    return! OK "" ctx
+    let! (userAllocations, at) = query ``user id``
+    return! [| userAllocations :> obj; at :> obj |] |> JsonConvert.SerializeObject |> OK <| ctx
 }
