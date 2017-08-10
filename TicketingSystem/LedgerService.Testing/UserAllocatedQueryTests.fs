@@ -23,32 +23,35 @@ type UserAllocatedQueryTests() =
             collection.BulkWriteAsync(
                 [|
                     MongoDB.Driver.InsertOneModel(
-                    { 
-                        SourceId = System.Guid.NewGuid()
-                        EventId = "Event1"
-                        OrderId = "Order 1"
-                        UserId = "User 1"
-                        TransactionDate = System.DateTime.UtcNow
-                        Details = { PricesQuotedAt = System.DateTime.UtcNow; Tickets = [| { TicketTypeId = "Type 1"; Quantity = 2; PriceEach = 50M } |]; TotalPrice = 100M } |> Quotation
-                    });
+                        { 
+                            SourceId = System.Guid.NewGuid()
+                            EventId = "Event1"
+                            OrderId = "Order 1"
+                            UserId = "User 1"
+                            TransactionDate = System.DateTime.UtcNow
+                            Details = { PricesQuotedAt = System.DateTime.UtcNow; Tickets = [| { TicketTypeId = "Type 1"; Quantity = 2; PriceEach = 50M } |]; TotalPrice = 100M } |> Quotation
+                        }
+                    )
                     MongoDB.Driver.InsertOneModel(
-                    { 
-                        SourceId = System.Guid.NewGuid()
-                        EventId = "Event2"
-                        OrderId = "Order 2"
-                        UserId = "User 1"
-                        TransactionDate = System.DateTime.UtcNow
-                        Details = { PricesQuotedAt = System.DateTime.UtcNow; Tickets = [| { TicketTypeId = "Type 2"; Quantity = 2; PriceEach = 10.5M } |]; TotalPrice = 21M } |> Quotation
-                    })
+                        { 
+                            SourceId = System.Guid.NewGuid()
+                            EventId = "Event2"
+                            OrderId = "Order 2"
+                            UserId = "User 1"
+                            TransactionDate = System.DateTime.UtcNow
+                            Details = { PricesQuotedAt = System.DateTime.UtcNow; Tickets = [| { TicketTypeId = "Type 2"; Quantity = 2; PriceEach = 10.5M } |]; TotalPrice = 21M } |> Quotation
+                        }
+                    )
                     MongoDB.Driver.InsertOneModel(
-                    { 
-                        SourceId = System.Guid.NewGuid()
-                        EventId = "Event2"
-                        OrderId = "Order 2"
-                        UserId = "User 1"
-                        TransactionDate = System.DateTime.UtcNow
-                        Details = { AllocationDetails.TotalPrice = 21M; Tickets = [| { TicketTypeId = "Type 2"; TicketId = "Tic1"; Price = 10.5M }; { TicketTypeId = "Type 2"; TicketId = "Tic2"; Price = 10.5M } |] } |> Allocation
-                    })
+                        { 
+                            SourceId = System.Guid.NewGuid()
+                            EventId = "Event2"
+                            OrderId = "Order 2"
+                            UserId = "User 1"
+                            TransactionDate = System.DateTime.UtcNow
+                            Details = { AllocationDetails.TotalPrice = 21M; Tickets = [| { TicketTypeId = "Type 2"; TicketId = "Tic1"; Price = 10.5M }; { TicketTypeId = "Type 2"; TicketId = "Tic2"; Price = 10.5M } |] } |> Allocation
+                        }
+                    )
                 |]
             ) |> Async.AwaitTask
         
@@ -68,41 +71,45 @@ type UserAllocatedQueryTests() =
             collection.BulkWriteAsync(
                 [|
                     MongoDB.Driver.InsertOneModel(
-                    { 
-                        SourceId = System.Guid.NewGuid()
-                        EventId = "Event1"
-                        OrderId = "Order 1"
-                        UserId = "User 1"
-                        TransactionDate = System.DateTime.UtcNow
-                        Details = { PricesQuotedAt = System.DateTime.UtcNow; Tickets = [| { TicketTypeId = "Type 1"; Quantity = 2; PriceEach = 50M } |]; TotalPrice = 100M } |> Quotation
-                    });
+                        { 
+                            SourceId = System.Guid.NewGuid()
+                            EventId = "Event1"
+                            OrderId = "Order 1"
+                            UserId = "User 1"
+                            TransactionDate = System.DateTime.UtcNow
+                            Details = { PricesQuotedAt = System.DateTime.UtcNow; Tickets = [| { TicketTypeId = "Type 1"; Quantity = 2; PriceEach = 50M } |]; TotalPrice = 100M } |> Quotation
+                        }
+                    )
                     MongoDB.Driver.InsertOneModel(
-                    { 
-                        SourceId = System.Guid.NewGuid()
-                        EventId = "Event2"
-                        OrderId = "Order 2"
-                        UserId = "User 1"
-                        TransactionDate = System.DateTime.UtcNow
-                        Details = { PricesQuotedAt = System.DateTime.UtcNow; Tickets = [| { TicketTypeId = "Type 2"; Quantity = 2; PriceEach = 10.5M } |]; TotalPrice = 21M } |> Quotation
-                    })
+                        { 
+                            SourceId = System.Guid.NewGuid()
+                            EventId = "Event2"
+                            OrderId = "Order 2"
+                            UserId = "User 1"
+                            TransactionDate = System.DateTime.UtcNow
+                            Details = { PricesQuotedAt = System.DateTime.UtcNow; Tickets = [| { TicketTypeId = "Type 2"; Quantity = 2; PriceEach = 10.5M } |]; TotalPrice = 21M } |> Quotation
+                        }
+                    )
                     MongoDB.Driver.InsertOneModel(
-                    { 
-                        SourceId = System.Guid.NewGuid()
-                        EventId = "Event2"
-                        OrderId = "Order 2"
-                        UserId = "User 1"
-                        TransactionDate = System.DateTime.UtcNow
-                        Details = { AllocationDetails.TotalPrice = 21M; Tickets = [| { TicketTypeId = "Type 2"; TicketId = "Tic1"; Price = 10.5M }; { TicketTypeId = "Type 2"; TicketId = "Tic2"; Price = 10.5M } |] } |> Allocation
-                    })
+                        { 
+                            SourceId = System.Guid.NewGuid()
+                            EventId = "Event2"
+                            OrderId = "Order 2"
+                            UserId = "User 1"
+                            TransactionDate = System.DateTime.UtcNow
+                            Details = { AllocationDetails.TotalPrice = 21M; Tickets = [| { TicketTypeId = "Type 2"; TicketId = "Tic1"; Price = 10.5M }; { TicketTypeId = "Type 2"; TicketId = "Tic2"; Price = 10.5M } |] } |> Allocation
+                        }
+                    )
                     MongoDB.Driver.InsertOneModel(
-                    { 
-                        SourceId = System.Guid.NewGuid()
-                        EventId = "Event2"
-                        OrderId = "Order 2"
-                        UserId = "User 1"
-                        TransactionDate = System.DateTime.UtcNow
-                        Details = { CancellationId = "Cancelled1"; TotalPrice = 10.5M; Tickets = [| { TicketTypeId = "Type 2"; TicketId = "Tic2"; Price = 10.5M } |] } |> Cancellation
-                    })
+                        { 
+                            SourceId = System.Guid.NewGuid()
+                            EventId = "Event2"
+                            OrderId = "Order 2"
+                            UserId = "User 1"
+                            TransactionDate = System.DateTime.UtcNow
+                            Details = { CancellationId = "Cancelled1"; TotalPrice = 10.5M; Tickets = [| { TicketTypeId = "Type 2"; TicketId = "Tic2"; Price = 10.5M } |] } |> Cancellation
+                        }
+                    )
                 |]
             ) |> Async.AwaitTask
         

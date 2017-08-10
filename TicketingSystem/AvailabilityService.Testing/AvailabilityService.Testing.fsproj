@@ -56,6 +56,8 @@
   <ItemGroup>
     <Compile Include="AssemblyInfo.fs" />
     <Compile Include="ReserveTicketsDatabaseTests.fs" />
+    <Compile Include="BookTicketCommandHandlerTests.fs" />
+    <Compile Include="CancelTicketsCommandHandlerTests.fs" />
     <Content Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
@@ -92,9 +94,29 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\AvailabilityCancellation.App\AvailabilityCancellation.App.fsproj">
+      <Name>AvailabilityCancellation.App</Name>
+      <Project>{ee52d1cd-f97b-45d2-a2f4-f8695f48cd10}</Project>
+      <Private>True</Private>
+    </ProjectReference>
+    <ProjectReference Include="..\AvailabilityService.Consumer\AvailabilityBooking.App.fsproj">
+      <Name>AvailabilityBooking.App</Name>
+      <Project>{9ace9e94-9e36-472a-baf5-0b5cd37b7d22}</Project>
+      <Private>True</Private>
+    </ProjectReference>
+    <ProjectReference Include="..\AvailabilityService.Events\AvailabilityService.Contract.fsproj">
+      <Name>AvailabilityService.Contract</Name>
+      <Project>{b11c19e1-c90f-4ae7-9c41-bfe8179fc443}</Project>
+      <Private>True</Private>
+    </ProjectReference>
     <ProjectReference Include="..\AvailabilityService\AvailabilityService.fsproj">
       <Name>AvailabilityService (AvailabilityService\AvailabilityService)</Name>
       <Project>{cd3a999f-9053-4eef-bde7-689349cac6a5}</Project>
+      <Private>True</Private>
+    </ProjectReference>
+    <ProjectReference Include="..\RabbitMQ.Subscriber\RabbitMQ.Subscriber.fsproj">
+      <Name>RabbitMQ.Subscriber</Name>
+      <Project>{023bf177-bba4-4073-af23-4b19a3d0e356}</Project>
       <Private>True</Private>
     </ProjectReference>
   </ItemGroup>

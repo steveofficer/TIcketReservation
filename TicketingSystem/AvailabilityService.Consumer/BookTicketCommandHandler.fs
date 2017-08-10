@@ -44,7 +44,9 @@ type BookTicketsCommandHandler
                 {
                     EventId = message.EventId
                     OrderId = message.OrderId
-                    RequestedAt = System.DateTime.UtcNow
+                    PaymentReference = message.PaymentReference
+                    RequestedAt = requestedAt
+                    FailedAt = System.DateTime.UtcNow
                     Tickets = message.Tickets |> Array.map (fun t -> { TicketTypeId = t.TicketTypeId; Quantity = t.Quantity })
                     UserId = message.UserId
                     Reason = "The tickets were not available"

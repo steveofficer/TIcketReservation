@@ -32,6 +32,8 @@ type TicketsCancelledEvent = {
 type TicketsAllocationFailedEvent = {
     EventId : string
     OrderId : string
+    PaymentReference : string
+    FailedAt : System.DateTime
     RequestedAt : System.DateTime
     Tickets : TicketQuantity[]
     UserId : string
