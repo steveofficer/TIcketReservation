@@ -25,7 +25,7 @@ let main argv =
     let ``record entry`` = ``record transaction`` mongoDb
 
     // Get the Prefetch Size to control the number of unacknowledged message this service has at one time
-    let prefetch = System.Configuration.ConfigurationManager.AppSettings.["PrefetchCount"] |> System.UInt16.Parse 
+    let prefetch = System.Configuration.ConfigurationManager.AppSettings.["prefetch_count"] |> System.UInt16.Parse 
 
     // Create the connection to RabbitMQ
     let rabbitFactory = RabbitMQ.Client.ConnectionFactory(uri = System.Uri(settings.["rabbit"].ConnectionString))
