@@ -15,6 +15,9 @@ let main argv =
         return conn :> IDbConnection
     }
 
+    // Get the Prefetch Size to control the number of unacknowledged message this service has at one time
+    let prefetch = System.Configuration.ConfigurationManager.AppSettings.["PrefetchCount"] |> System.UInt16.Parse 
+
     // Create the connection to RabbitMQ
     let rabbitFactory = RabbitMQ.Client.ConnectionFactory(uri = System.Uri(settings.["rabbit"].ConnectionString))
     let connection = rabbitFactory.CreateConnection()
@@ -24,7 +27,7 @@ let main argv =
     publisher.registerEvents([| "AvailabilityService.Contract" |])
     
     // Set up the subscribers
-    let service = Service(connection, "Availability.Cancellation")
+    let service = Service(connection, "Availability.Cancellation", prefetch)
     AvailabilityCancellation.CancelTicketsCommandHandler(
         publisher.publish, connectionFactory, ``cancellation exists``, ``can tickets be cancelled``, ``record cancellation``
     ) |> service.``add subscriber``

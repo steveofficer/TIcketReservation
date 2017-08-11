@@ -16,6 +16,9 @@ let main argv =
         return conn :> IDbConnection
     }
 
+    // Get the Prefetch Size to control the number of unacknowledged message this service has at one time
+    let prefetch = System.Configuration.ConfigurationManager.AppSettings.["PrefetchCount"] |> System.UInt16.Parse 
+
     // Create the connection to RabbitMQ
     let rabbitFactory = RabbitMQ.Client.ConnectionFactory(uri = System.Uri(settings.["rabbit"].ConnectionString))
     let connection = rabbitFactory.CreateConnection()
@@ -27,7 +30,7 @@ let main argv =
     let ``id gen`` () = MongoDB.Bson.ObjectId.GenerateNewId().ToString()
 
     // Set up the subscribers
-    let service = Service(connection, "Availability.Booking")
+    let service = Service(connection, "Availability.Booking", prefetch)
     AvailabilityBooking.BookTicketsCommandHandler(
         publisher.publish, 
         ``id gen``, 

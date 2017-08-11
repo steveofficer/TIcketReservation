@@ -19,6 +19,9 @@ let main argv =
     let mongoDb = mongoClient.GetDatabase(System.Configuration.ConfigurationManager.AppSettings.["database"])
     let collection = mongoDb.GetCollection<Callback>("Gateway")
 
+    // Get the Prefetch Size to control the number of unacknowledged message this service has at one time
+    let prefetch = System.Configuration.ConfigurationManager.AppSettings.["PrefetchCount"] |> System.UInt16.Parse 
+
     // Create the connection to RabbitMQ
     let rabbitFactory = RabbitMQ.Client.ConnectionFactory(uri = System.Uri(settings.["rabbit"].ConnectionString))
     let connection = rabbitFactory.CreateConnection()
@@ -30,7 +33,7 @@ let main argv =
     }
 
     // Set up the subscribers
-    let service = Service(connection, "ClientGateway")
+    let service = Service(connection, "ClientGateway", prefetch)
     TicketsAllocationFailedHandler(``deliver notification``, findCallback) |> service.``add subscriber``
     TicketsAllocatedHandler(``deliver notification``, findCallback) |> service.``add subscriber``
     TicketsCancelledHandler(``deliver notification``, findCallback) |> service.``add subscriber``

@@ -24,12 +24,15 @@ let main argv =
     let ``message handled`` = ``already handled`` mongoDb
     let ``record entry`` = ``record transaction`` mongoDb
 
+    // Get the Prefetch Size to control the number of unacknowledged message this service has at one time
+    let prefetch = System.Configuration.ConfigurationManager.AppSettings.["PrefetchCount"] |> System.UInt16.Parse 
+
     // Create the connection to RabbitMQ
     let rabbitFactory = RabbitMQ.Client.ConnectionFactory(uri = System.Uri(settings.["rabbit"].ConnectionString))
     let connection = rabbitFactory.CreateConnection()
 
     // Set up the subscribers
-    let service = Service(connection, "LedgerService")
+    let service = Service(connection, "LedgerService", prefetch)
 
     TicketsQuotedHandler(``message handled``, ``record entry``) |> service.``add subscriber``
     TicketsAllocatedHandler(``message handled``, ``record entry``) |> service.``add subscriber``

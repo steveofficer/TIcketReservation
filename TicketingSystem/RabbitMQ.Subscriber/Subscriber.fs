@@ -28,9 +28,10 @@ type PublishingMessageHandler<'T>(publish : obj -> Async<unit>) =
     member this.Publish (message : obj) = publish message
 
 /// A helper class that initializes and manages message receipt from RabbitMQ
-type Service(connection : RabbitMQ.Client.IConnection, queue_name) =
+type Service(connection : RabbitMQ.Client.IConnection, queue_name, prefetch_count) =
     let subscription_channel = connection.CreateModel()
-    do subscription_channel.BasicQos(0u, 10us, true)
+    // Set the Quality of Service so we limit the number of unacknowledged messages that the service can have at one time
+    do subscription_channel.BasicQos(0u, prefetch_count, true)
     do subscription_channel.QueueDeclare(queue_name, true, false, false) |> ignore
     
     let handlers = Collections.Generic.Dictionary<string, MessageHandlerBase>()
