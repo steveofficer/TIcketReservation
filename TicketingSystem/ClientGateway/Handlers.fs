@@ -1,34 +1,31 @@
 ﻿module Handlers
 
 open AvailabilityService.Contract.Events
-open MongoDB.Driver
 
-type ClientCallback = {
-    EventId : string
-    EventType : string
-    CallbackUrl : string
-}
-
-type TicketsCancelledHandler(collection : IMongoCollection<ClientCallback>) =
+type TicketsCancelledHandler(notify, getCallback : string -> Async<string>) =
     inherit RabbitMQ.Subscriber.MessageHandler<TicketsCancelledEvent>()
     override this.HandleMessage (messageId) (sentAt) (message : TicketsCancelledEvent) = async {
-        return ()
+        let! callback = getCallback message.EventId
+        do! notify callback messageId message
     }
 
-type TicketsCancellationFailedHandler(collection : IMongoCollection<ClientCallback>) =
+type TicketsCancellationFailedHandler(notify, getCallback : string -> Async<string>) =
     inherit RabbitMQ.Subscriber.MessageHandler<TicketsCancellationFailedEvent>()
     override this.HandleMessage (messageId) (sentAt) (message : TicketsCancellationFailedEvent) = async {
-        return ()
+        let! callback = getCallback message.EventId
+        do! notify callback messageId message
     }
 
-type TicketsAllocatedHandler(collection : IMongoCollection<ClientCallback>) =
+type TicketsAllocatedHandler(notify, getCallback : string -> Async<string>) =
     inherit RabbitMQ.Subscriber.MessageHandler<TicketsAllocatedEvent>()
     override this.HandleMessage (messageId) (sentAt) (message : TicketsAllocatedEvent) = async {
-        return ()    
+        let! callback = getCallback message.EventId
+        do! notify callback messageId message
     }
 
-type TicketsAllocationFailedHandler(collection : IMongoCollection<ClientCallback>) =
+type TicketsAllocationFailedHandler(notify, getCallback : string -> Async<string>) =
     inherit RabbitMQ.Subscriber.MessageHandler<TicketsAllocationFailedEvent>()
     override this.HandleMessage (messageId) (sentAt) (message : TicketsAllocationFailedEvent) = async {
-        return ()    
+        let! callback = getCallback message.EventId
+        do! notify callback messageId message
     }
