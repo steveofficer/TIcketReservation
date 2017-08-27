@@ -12,7 +12,7 @@ type TicketFilter = {
 
 type AvailableTicket = {
     TicketTypeId : string
-    RemainingQuantity : int32
+    Quantity : int32
 }
 
 type AllocatedTicket = { 
@@ -64,35 +64,19 @@ let ``reserve tickets`` (conn : IDbConnection) (tickets : IDictionary<string, in
     // We want to lock the records that we read so that we know the available quantity is accurate
     let transaction = conn.BeginTransaction(System.Data.IsolationLevel.RepeatableRead)
     
-    // First see how many remaining tickets there are for each of the ticket types we are trying to make
-    // reservations for.
-    let! availableTickets = async {
-        let! result = 
-            conn.QueryAsync<AvailableTicket>(
-                """SELECT [TicketTypeId], [RemainingQuantity] FROM [EventTickets] WITH (UPDLOCK) WHERE [RemainingQuantity] <> 0 AND [TicketTypeId] IN @TicketIds""", 
-                { TicketIds = (tickets.Keys |> Array.ofSeq) }, 
-                transaction
-            ) |> Async.AwaitTask
-        return  result |> Seq.map (fun t -> (t.TicketTypeId, t.RemainingQuantity)) |> dict
-    }
-
-    if availableTickets.Count <> tickets.Count then 
-        // Not all of the requested ticket types are available, don't book anything and don't return anything
-        transaction.Dispose()
-        return None
-    elif tickets |> Seq.forall (fun t -> availableTickets.[t.Key] >= t.Value) then
-        // All of the requested ticket types have remaining quantities that are >= the requested quantities
-        // Decreased the remaining quantities for the ticket types we have handled
-        let! result = 
-            conn.ExecuteAsync(
-                """UPDATE [EventTickets] SET RemainingQuantity = @RemainingQuantity WHERE TicketTypeId = @TicketTypeId""", 
-                tickets |> Seq.map (fun t -> { AvailableTicket.TicketTypeId = t.Key; RemainingQuantity = availableTickets.[t.Key] - t.Value }),
-                transaction
-            ) |> Async.AwaitTask
-        
+    let! result = 
+        conn.ExecuteAsync(
+            """UPDATE [EventTickets] SET RemainingQuantity -= @Quantity WHERE TicketTypeId = @TicketTypeId AND RemainingQuantity >= @Quantity""", 
+            tickets |> Seq.map (fun t -> { AvailableTicket.TicketTypeId = t.Key; Quantity = t.Value }),
+            transaction
+        ) |> Async.AwaitTask
+    if result = tickets.Count
+    then 
+        // We updated all the requested ticket types successfully
         return Some transaction
-    else
-        // Not all of the requested ticket types are available in the requested quantities. 
+    else 
+        // Not all of the requested tickets were updated, rollback the transaction
+        transaction.Dispose()
         return None
 }
 
